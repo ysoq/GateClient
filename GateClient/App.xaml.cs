@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CodeCore;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -13,5 +14,11 @@ namespace GateClient
     /// </summary>
     public partial class App : Application
     {
-    }
+
+        public App()
+        {
+            Appsettings.Default = new Appsettings();
+            PageSizeInfo.Default = new PageSizeInfo();
+        }
+        }
 }

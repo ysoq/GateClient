@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GateClient", "GateClient\GateClient.csproj", "{AC4E40FA-B83D-46EE-A8F0-CBD1606E6024}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GateClient", "GateClient\GateClient.csproj", "{AC4E40FA-B83D-46EE-A8F0-CBD1606E6024}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeCore", "CodeCore\CodeCore.csproj", "{54A57254-489C-447E-BDC9-783E10F7B348}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{AC4E40FA-B83D-46EE-A8F0-CBD1606E6024}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AC4E40FA-B83D-46EE-A8F0-CBD1606E6024}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AC4E40FA-B83D-46EE-A8F0-CBD1606E6024}.Release|Any CPU.Build.0 = Release|Any CPU
+		{54A57254-489C-447E-BDC9-783E10F7B348}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54A57254-489C-447E-BDC9-783E10F7B348}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54A57254-489C-447E-BDC9-783E10F7B348}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54A57254-489C-447E-BDC9-783E10F7B348}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

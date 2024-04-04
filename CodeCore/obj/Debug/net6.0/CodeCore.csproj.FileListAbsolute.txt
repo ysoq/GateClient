@@ -1,0 +1,12 @@
+E:\code\64.GateClient\CodeCore\bin\Debug\net6.0\CodeCore.deps.json
+E:\code\64.GateClient\CodeCore\bin\Debug\net6.0\CodeCore.dll
+E:\code\64.GateClient\CodeCore\bin\Debug\net6.0\CodeCore.pdb
+E:\code\64.GateClient\CodeCore\obj\Debug\net6.0\CodeCore.csproj.AssemblyReference.cache
+E:\code\64.GateClient\CodeCore\obj\Debug\net6.0\CodeCore.GeneratedMSBuildEditorConfig.editorconfig
+E:\code\64.GateClient\CodeCore\obj\Debug\net6.0\CodeCore.AssemblyInfoInputs.cache
+E:\code\64.GateClient\CodeCore\obj\Debug\net6.0\CodeCore.AssemblyInfo.cs
+E:\code\64.GateClient\CodeCore\obj\Debug\net6.0\CodeCore.csproj.CoreCompileInputs.cache
+E:\code\64.GateClient\CodeCore\obj\Debug\net6.0\CodeCore.dll
+E:\code\64.GateClient\CodeCore\obj\Debug\net6.0\refint\CodeCore.dll
+E:\code\64.GateClient\CodeCore\obj\Debug\net6.0\CodeCore.pdb
+E:\code\64.GateClient\CodeCore\obj\Debug\net6.0\ref\CodeCore.dll
