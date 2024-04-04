@@ -34,6 +34,9 @@ namespace GateClient
             services.AddSingleton<IMainWindow, MainWindow>();
             services.AddSingleton<MainViewModel>();
 
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            Appsettings.Default.Version = $"V{version!.Major}.{version!.Minor}";
+
             return services.BuildServiceProvider();
         }
 

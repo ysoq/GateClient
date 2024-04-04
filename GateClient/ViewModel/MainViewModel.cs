@@ -47,7 +47,7 @@ namespace GateClient.ViewModel
         private void ChangeVersionText()
         {
             var date = DateTime.Now.ToString("HH:mm");
-            RightBottomText = $"{appsettings.Node("account").Value<string>("code")} {date} v:1.02";
+            RightBottomText = $"{appsettings.Node("account").Value<string>("code")} {date} v:{appsettings.Version}";
         }
 
         [RelayCommand]

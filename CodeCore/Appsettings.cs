@@ -31,5 +31,7 @@ namespace CodeCore
 
         public bool Debug { get; internal set; }
 
+        public string Version { get; set; }
+
     }
 }
