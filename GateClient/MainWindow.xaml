@@ -12,9 +12,6 @@
     Width="768"
     Height="1366"
     mc:Ignorable="d">
-    <Window.DataContext>
-        <vm:MainViewModel />
-    </Window.DataContext>
     <Grid>
         <ScrollViewer>
             <local:PageControl

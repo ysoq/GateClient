@@ -12,33 +12,24 @@ namespace CodeCore
     public class Appsettings
     {
         public static Appsettings? Default { get; set; }
-        public  Appsettings()
-        {
-            var jsonContent = File.ReadAllText("appsettings.json");
-            keyValuePairs = Newtonsoft.Json.JsonConvert.DeserializeObject<JObject>(jsonContent);
-            AppWidth = SystemParameters.PrimaryScreenWidth;
-            AppHeight = SystemParameters.PrimaryScreenHeight;
-#if DEBUG
-            AppWidth = 768;
-            AppHeight = 1366;
-#endif
-        }
 
-        private JObject? keyValuePairs = null;
+        public JObject? KeyValuePairs { get; internal set; }
 
         public T? Get<T>(string key)
         {
-            return keyValuePairs == null ? default(T) : keyValuePairs.Value<T>(key);
+            return KeyValuePairs == null ? default(T) : KeyValuePairs.Value<T>(key);
         }
 
-        public JObject? GetNode(string key)
+        public JObject? Node(string key)
         {
             return Get<JObject>(key);
         }
 
-        public double AppWidth { get; private set; }
+        public double AppWidth { get; internal set; }
 
-        public double AppHeight { get; private set; }
+        public double AppHeight { get; internal set; }
+
+        public bool Debug { get; internal set; }
 
     }
 }

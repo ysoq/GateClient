@@ -33,12 +33,21 @@ namespace GateClient.ViewModel
 
         [ObservableProperty]
         private Geometry? themeIcon;
+        private readonly Appsettings appsettings;
 
-
-        public MainViewModel()
+        public MainViewModel(IQuartz quartz, Appsettings appsettings)
         {
+            this.appsettings = appsettings;
+
             ChangePage1();
-            rightBottomText = "山咀港 testGate1 14:53 v:1.02";
+            ChangeVersionText();
+            quartz.CreateJob(this, nameof(MainViewModel.ChangeVersionText), 1, ChangeVersionText);
+        }
+
+        private void ChangeVersionText()
+        {
+            var date = DateTime.Now.ToString("HH:mm");
+            RightBottomText = $"{appsettings.Node("account").Value<string>("code")} {date} v:1.02";
         }
 
         [RelayCommand]

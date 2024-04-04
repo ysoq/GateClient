@@ -21,19 +21,6 @@ namespace CodeCore
         public Thickness BorderMargin { get; set; } = new Thickness(195, 0, 195, 271);
         public Thickness BorderPadding { get; set; } = new Thickness(120);
 
-        public PageSizeInfo()
-        {
-            if (Appsettings.Default?.AppWidth == 768)
-            {
-                BorderMargin = new Thickness(84, 0, 84, 117);
-                BorderPadding = new Thickness(100);
-                LeftTopTextFontSize = 24;
-                LeftTopTextMargin = new Thickness(17, 24, 0, 0);
-                StatusNameFontSize = 60;
-                StatusNameMargin = new Thickness(0, 0, 0, 200);
-                RightBottomTextFontSize = 24;
-                RightBottomTextMargin = new Thickness(18);
-            }
-        }
+        
     }
 }
