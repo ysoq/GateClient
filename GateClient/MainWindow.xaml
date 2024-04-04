@@ -20,10 +20,19 @@
             <local:PageControl
                 Width="{Binding Source={x:Static codeCore:Appsettings.Default}, Path=AppWidth}"
                 Height="{Binding Source={x:Static codeCore:Appsettings.Default}, Path=AppHeight}"
+                EndBg="{Binding EndBg}"
                 LeftTopText="{Binding LeftTopText}"
                 RightBottomText="{Binding RightBottomText}"
-                StatusName="{Binding Title}" />
+                StartBg="{Binding StartBg}"
+                StatusName="{Binding Title}"
+                ThemeBg="{Binding ThemeBg}"
+                ThemeIcon="{Binding ThemeIcon}" />
         </ScrollViewer>
-
+        <StackPanel>
+            <Button Command="{Binding ChangePage1Command}" Content="请检票" />
+            <Button Command="{Binding ChangePage2Command}" Content="检票成功" />
+            <Button Command="{Binding ChangePage3Command}" Content="检票失败" />
+            <Button Command="{Binding ChangePage4Command}" Content="网络异常" />
+        </StackPanel>
     </Grid>
 </Window>
