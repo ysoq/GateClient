@@ -1,6 +1,8 @@
 ﻿using System.Windows.Media;
 using System.Windows;
 using System.Windows.Controls;
+using CodeCore;
+using System;
 
 namespace GateClient
 {
@@ -83,8 +85,6 @@ namespace GateClient
             DependencyProperty.Register("ThemeBg", typeof(Brush), typeof(PageControl), new PropertyMetadata(new SolidColorBrush(Color.FromArgb(1, 2, 167, 240))));
 
 
-
-
         public Geometry ThemeIcon
         {
             get { return (Geometry)GetValue(ThemeIconProperty); }
@@ -97,5 +97,30 @@ namespace GateClient
 
 
 
+
+        public bool IconRunning
+        {
+            get { return (bool)GetValue(IconRunningProperty); }
+            set { SetValue(IconRunningProperty, value); }
+        }
+
+        // Using a DependencyProperty as the backing store for IconRunning.  This enables animation, styling, binding, etc...
+        public static readonly DependencyProperty IconRunningProperty =
+            DependencyProperty.Register("IconRunning", typeof(bool), typeof(PageControl), new PropertyMetadata(false, IconRunningChange));
+
+        private static void IconRunningChange(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var control = d as PageControl;
+            if (control?.IconRunning == true)
+            {
+                control.icon.BeginAnimation(MarginProperty, new Thickness(0), new Thickness(0, 0, 0, 20), 1, new AnimationSetting()
+                {
+                    RunCount = -1
+                });
+            } else
+            {
+                control.icon.BeginAnimation(MarginProperty, null);
+            }
+        }
     }
 }

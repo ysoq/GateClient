@@ -1,4 +1,5 @@
 ﻿using CodeCore.Impl;
+using CodeCore.ProwayGate;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -55,7 +56,12 @@ namespace CodeCore
             {
                 return Appsettings.Default;
             });
+
+            services.AddSingleton(s => new GateUtil());
+
             services.AddSingleton<ILogger, Logger>();
+            services.AddSingleton<ICertUtil, CertUtil>();
+            services.AddSingleton<IQrUtil, QrUtil>();
 
             var data = new PageSizeInfo();
 

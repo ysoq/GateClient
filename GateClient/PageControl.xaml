@@ -53,6 +53,7 @@
             Background="{Binding ElementName=uc, Path=ThemeBg}"
             CornerRadius="999">
             <Path
+                x:Name="icon"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Data="{Binding ElementName=uc, Path=ThemeIcon}"

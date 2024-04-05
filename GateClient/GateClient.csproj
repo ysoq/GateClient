@@ -12,11 +12,59 @@
 
 	<ItemGroup>
 		<None Remove="appsettings.json" />
+		<None Remove="Expand\cert_zk.dll" />
+		<None Remove="Expand\DLL_File.dll" />
+		<None Remove="Expand\gateface.dll" />
+		<None Remove="Expand\kernel32.dll" />
+		<None Remove="Expand\libwlt2bmp.dll" />
+		<None Remove="Expand\license.dat" />
+		<None Remove="Expand\msvcr80.dll" />
+		<None Remove="Expand\sdtapi.dll" />
+		<None Remove="Expand\termb.dll" />
+		<None Remove="Expand\USBHIDHelper.dll" />
+		<None Remove="Expand\winmm.dll" />
+		<None Remove="Expand\zkSDTComm.dll" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Content Include="appsettings.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Expand\cert_zk.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Expand\DLL_File.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Expand\gateface.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Expand\kernel32.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Expand\libwlt2bmp.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Expand\license.dat">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Expand\msvcr80.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Expand\sdtapi.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Expand\termb.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Expand\USBHIDHelper.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Expand\winmm.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Expand\zkSDTComm.dll">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
 

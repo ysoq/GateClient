@@ -18,6 +18,7 @@
                 Width="{Binding Source={x:Static codeCore:Appsettings.Default}, Path=AppWidth}"
                 Height="{Binding Source={x:Static codeCore:Appsettings.Default}, Path=AppHeight}"
                 EndBg="{Binding EndBg}"
+                IconRunning="{Binding IconRunning}"
                 LeftTopText="{Binding LeftTopText}"
                 RightBottomText="{Binding RightBottomText}"
                 StartBg="{Binding StartBg}"
@@ -25,9 +26,5 @@
                 ThemeBg="{Binding ThemeBg}"
                 ThemeIcon="{Binding ThemeIcon}" />
         </ScrollViewer>
-        <StackPanel>
-            <TextBox Text="" x:Name="code"/>
-            <Button Command="{Binding CheckCommand}" Content="检票" CommandParameter="{Binding ElementName=code,Path=Text}"/>
-        </StackPanel>
     </Grid>
 </Window>
