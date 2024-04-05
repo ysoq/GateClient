@@ -26,10 +26,8 @@
                 ThemeIcon="{Binding ThemeIcon}" />
         </ScrollViewer>
         <StackPanel>
-            <Button Command="{Binding ChangePage1Command}" Content="请检票" />
-            <Button Command="{Binding ChangePage2Command}" Content="检票成功" />
-            <Button Command="{Binding ChangePage3Command}" Content="检票失败" />
-            <Button Command="{Binding ChangePage4Command}" Content="网络异常" />
+            <TextBox Text="" x:Name="code"/>
+            <Button Command="{Binding CheckCommand}" Content="检票" CommandParameter="{Binding ElementName=code,Path=Text}"/>
         </StackPanel>
     </Grid>
 </Window>

@@ -1,5 +1,6 @@
 ﻿using CodeCore.Impl;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -55,8 +56,6 @@ namespace CodeCore
                 return Appsettings.Default;
             });
             services.AddSingleton<ILogger, Logger>();
-            services.AddSingleton<IQuartz, Impl.Quartz>();
-
 
             var data = new PageSizeInfo();
 
@@ -73,5 +72,49 @@ namespace CodeCore
             }
             PageSizeInfo.Default = data;
         }
+
+        static HttpClient HttpClient = new HttpClient();
+        public static async Task<HttpResponse> UseHttpJson(string api, object args)
+        {
+            var httpId = Random.Shared.Next(1000, 9999).ToString();
+
+            var logger = Injection.GetService<ILogger>()!;
+            logger.Info(httpId, api, JsonConvert.SerializeObject(args));
+            var resultData = new HttpResponse();
+            try
+            {
+                var req = new HttpRequestMessage(HttpMethod.Post, api);
+                req.Content = JsonContent.Create(args);
+                var response = await HttpClient.SendAsync(req);
+                if (!response.IsSuccessStatusCode)
+                {
+                    resultData.Success = false;
+                    resultData.Error = new Exception("网络请求错误，日志代码：" + httpId);
+                    logger.Error(httpId, "网络请求错误，错误代码：", response.StatusCode.ToString());
+                    return resultData;
+                }
+
+                resultData.Success = true;
+                resultData.JsonData = await response.Content.ReadAsStringAsync();
+                logger.Error(httpId, resultData.JsonData);
+            }
+            catch (Exception ex)
+            {
+                resultData.Success = false;
+                resultData.Error = new Exception("网络请求错误，日志代码：" + httpId);
+                logger.Error(ex, httpId);
+            }
+
+            return resultData;
+        }
+
+        public static IServiceProvider Injection { get; internal set; }
+        public static void ConfigureServices(Action<ServiceCollection> register)
+        {
+            var services = new ServiceCollection();
+            services.RegisterCodeCore();
+            register?.Invoke(services);
+            Injection = services.BuildServiceProvider();
+        }
     }
-}   
+}

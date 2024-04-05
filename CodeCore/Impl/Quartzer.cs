@@ -1,19 +1,14 @@
 ﻿using Quartz.Impl;
 using Quartz;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeCore.Impl
 {
-    public class Quartz : IQuartz
+    public class Quartzer : IJob
     {
-        private readonly ILogger logger;
-
-        public Quartz(ILogger logger)
-        {
-            this.logger = logger;
-        }
-        public Dictionary<string, Action> ActionList { get; } = new();
-        public Dictionary<string, bool> LockData { get; } = new();
-        public Dictionary<object, List<string>> OwnerKey { get; } = new();
+        public static Dictionary<string, Action> ActionList { get; } = new();
+        public static Dictionary<string, bool> LockData { get; } = new();
+        public static Dictionary<object, List<string>> OwnerKey { get; } = new();
 
         public Task Execute(IJobExecutionContext context)
         {
@@ -36,12 +31,14 @@ namespace CodeCore.Impl
                 }
                 catch (Exception ex)
                 {
+                    var logger = Util.Injection.GetService<ILogger>();
                     logger?.Error(ex);
                 }
             });
         }
 
-        public void CreateJob(object owner, string token, ITrigger trigger, Action action)
+
+        public static void CreateJob(object owner, string token, ITrigger trigger, Action action)
         {
             try
             {
@@ -63,7 +60,7 @@ namespace CodeCore.Impl
                         scheduler.Start().Wait();
                     }
                     ActionList.Add(token, action);
-                    IJobDetail job = JobBuilder.Create<Quartz>()
+                    IJobDetail job = JobBuilder.Create<CodeCore.Impl.Quartzer>()
                                      .WithIdentity(new JobKey(token)) // name "myJob", group "group1"
                                      .UsingJobData("token", token)
                                      .Build();
@@ -73,11 +70,12 @@ namespace CodeCore.Impl
             }
             catch (Exception ex)
             {
+                var logger = Util.Injection.GetService<ILogger>();
                 logger?.Error(ex);
             }
         }
 
-        public void CreateJob(object owner, string token, double seconds, bool startNow, Action action)
+        public static void CreateJob(object owner, string token, double seconds, bool startNow, Action action)
         {
             // 创建触发器
             TriggerBuilder triggerBuilder = TriggerBuilder.Create();
@@ -95,12 +93,26 @@ namespace CodeCore.Impl
             CreateJob(owner, token, trigger, action);
         }
 
-        public void CreateJob(object owner, string token, double seconds, Action action)
+        public static void CreateJob(object owner, string token, double seconds, Action action)
         {
             CreateJob(owner, token, seconds, true, action);
         }
 
-        public async Task Remove(string key)
+        public static void Once(object owner, string token, double seconds, Action action)
+        {
+            // 创建触发器
+            TriggerBuilder triggerBuilder = TriggerBuilder.Create().StartAt(SystemTime.UtcNow().AddSeconds(seconds));
+
+            var trigger = triggerBuilder.WithSimpleSchedule(x => 
+                                                            x.WithInterval(TimeSpan.FromMilliseconds(seconds * 1000))
+                                                             .WithRepeatCount(0)
+                                                            )
+                              .Build();
+
+            CreateJob(owner, token, trigger, action);
+        }
+
+        public static async Task Remove(string key)
         {
             try
             {
@@ -113,11 +125,12 @@ namespace CodeCore.Impl
             }
             catch (Exception ex)
             {
+                var logger = Util.Injection.GetService<ILogger>();
                 logger?.Error(ex);
             }
         }
 
-        public async Task RemoveAll(object owner)
+        public static async void RemoveAll(object owner)
         {
             try
             {
@@ -134,6 +147,7 @@ namespace CodeCore.Impl
             }
             catch (Exception ex)
             {
+                var logger = Util.Injection.GetService<ILogger>();
                 logger?.Error(ex);
             }
         }
@@ -143,7 +157,7 @@ namespace CodeCore.Impl
         /// 设置当前任务正在执行，锁定后下次任务则会跳过
         /// </summary>
         /// <param name="token"></param>
-        public void Lock(string token)
+        public static void Lock(string token)
         {
             LockData[token] = true;
         }
@@ -152,7 +166,7 @@ namespace CodeCore.Impl
         /// 解锁
         /// </summary>
         /// <param name="token"></param>
-        public void Unlock(string token)
+        public static void Unlock(string token)
         {
             LockData.Remove(token);
         }

@@ -22,22 +22,17 @@ namespace GateClient
 
         public App()
         {
-            Services = ConfigureServices();
+            DispatcherHelper.Initialize();
+            Util.ConfigureServices(ConfigureServices);
         }
 
-        public new static App Current => (App)Application.Current;
-        public IServiceProvider Services { get; }
-        private static IServiceProvider ConfigureServices()
+        private void ConfigureServices(ServiceCollection services)
         {
-            var services = new ServiceCollection();
-            services.RegisterCodeCore();
             services.AddSingleton<IMainWindow, MainWindow>();
             services.AddSingleton<MainViewModel>();
 
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
             Appsettings.Default.Version = $"V{version!.Major}.{version!.Minor}";
-
-            return services.BuildServiceProvider();
         }
 
         private static Mutex mutex;
@@ -57,7 +52,7 @@ namespace GateClient
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            var window = App.Current.Services.GetService<IMainWindow>()!;
+            var window = Util.Injection.GetService<IMainWindow>()!;
             window.Show();
         }
     }
