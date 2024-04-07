@@ -1,4 +1,5 @@
-﻿using GateClient.ViewModel;
+﻿using CodeCore;
+using GateClient.ViewModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,10 +22,40 @@ namespace GateClient
     /// </summary>
     public partial class MainWindow : Window, IMainWindow
     {
-        public MainWindow(MainViewModel vm)
+        private readonly ILogger logger;
+
+        public MainWindow(MainViewModel vm, ILogger logger)
         {
             InitializeComponent();
             this.DataContext = vm;
+
+#if DEBUG
+            this.MouseMove += (s, e) =>
+            {
+                if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
+                {
+                    this.DragMove();
+                }
+            };
+#endif
+
+            this.WindowState = WindowState.Normal;
+            this.WindowStyle = WindowStyle.None;
+            this.ResizeMode = ResizeMode.NoResize;
+
+            this.Left = 0.0;
+            this.Top = 0.0;
+            this.Width = Appsettings.Default.AppWidth;
+            this.Height = Appsettings.Default.AppHeight;
+            this.logger = logger;
+        }
+
+        private void Grid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount < 2) return;
+
+            logger.Info("程序主动关闭");
+            Close();
         }
     }
 }

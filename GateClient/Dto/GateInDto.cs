@@ -16,6 +16,7 @@ namespace GateClient.Dto
         public string? idcard { get; set; }
         public string? qrCode { get; set; }
         public string? shipId { get; set; }
+        public string? spotId { get; set; }
         public string? flightShipCode { get; set; }
         public bool? faceVerify { get; set; }
     }

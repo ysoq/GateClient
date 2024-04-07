@@ -19,7 +19,7 @@ namespace GateClient.Dto
         // 获取景点名称
         public string? GetSpotName()
         {
-            return GateinTask?.spotTaskList?.FirstOrDefault()?.sportName;
+            return GateInfo?.areaName;
         }
 
         public string? GetAreaType()
@@ -47,6 +47,13 @@ namespace GateClient.Dto
     {
         public Shiptasklist[]? shipTaskList { get; set; }
         public Spottasklist[]? spotTaskList { get; set; }
+
+        public List<TicketInfo>? TicketInfos { get; set; }
+
+        public TicketInfo? Check(string idcard)
+        {
+            return TicketInfos?.Find(x=> x.idcard == idcard);
+        }
     }
 
     public class Shiptasklist
@@ -57,11 +64,12 @@ namespace GateClient.Dto
         public string startPortName { get; set; }
         public string endPortName { get; set; }
         public string flightCode { get; set; }
-        public string setoffDate { get; set; }
-        public string setoffTime { get; set; }
-        public string endsetoffTime { get; set; }
+        public string setOffDate { get; set; }
+        public string setOffTime { get; set; }
+        public string endSetOffTime { get; set; }
         public string shipId { get; set; }
         public string flightShipCode { get; set; }
+        public string shipCode { get; set; }
         //0待开航  1 到港 2 检票中 9结束检票 3 已开航
         public string status { get; set; }
         public string passengerSeatNum { get; set; }
@@ -71,6 +79,13 @@ namespace GateClient.Dto
     {
         public string spotId { get; set; }
         public string sportName { get; set; }
+    }
+
+    public class TicketInfo
+    {
+        public string? ticketNo { get; set; }
+        public string? idcard { get; set; }
+        public string? isNeedFaceVerify { get; set; }
     }
 }
 

@@ -14,6 +14,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using Newtonsoft.Json.Linq;
 using CodeCore.ProwayGate;
 using System.Reflection.Metadata;
+using Newtonsoft.Json;
 
 namespace GateClient.ViewModel
 {
@@ -164,7 +165,7 @@ namespace GateClient.ViewModel
                 ticketKind = GateDb.GetAreaType(),
                 code = GateCode,
                 password = GatePassword,
-                shipId = GateDb.GetSpotId(),
+                spotId = GateDb.GetSpotId(),
                 faceVerify = null,
                 qrCode = content,
             }));
@@ -243,7 +244,7 @@ namespace GateClient.ViewModel
                 code = GateCode,
                 password = GatePassword,
                 idcard = content,
-                shipId = GateDb.GetSpotId(),
+                spotId = GateDb.GetSpotId(),
             }));
         }
 
@@ -254,14 +255,34 @@ namespace GateClient.ViewModel
             var date = DateTime.Now.ToString("HH:mm");
             var spotName = GateDb?.GetSpotName();
             var code = appsettings.Node("account")?.Value<string>("code");
-            RightBottomText = $" {spotName} {code} {date} v:{appsettings.Version}";
+            RightBottomText = $" {spotName} {code} {date} {appsettings.Version}";
+        }
+
+        private void ChangeLeftTopText()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append(appsettings.Node("view")!.Value<string>("leftTopFormat"));
+            var firstShip = GateDb?.GateinTask?.shipTaskList?.FirstOrDefault();
+            if (firstShip != null)
+            {
+                var dic = JsonConvert.DeserializeObject<Dictionary<string, object>>(JsonConvert.SerializeObject(firstShip));
+                foreach (var item in dic!)
+                {
+                    sb.Replace("{" + item.Key + "}", item.Value?.ToString() ?? "");
+                }
+                LeftTopText= sb.ToString();
+            }
+            else
+            {
+                LeftTopText = "";
+            }
         }
 
         private GateDb? GateDb { get; set; }
         // 更新闸机信息，触发间隔一分钟
         private void GetGateInfo()
         {
-            var api = appsettings.Node("api").Value<string>("getGateInfo");
+            var api = appsettings.Node("api")!.Value<string>("getGateInfo");
             var args = new
             {
                 code = GateCode,
@@ -282,6 +303,7 @@ namespace GateClient.ViewModel
                     {
                         InitPageEnd();
                     }
+                    LoadCacheTicket();
                 }
                 else if (CurrPageCode != PageCode.Init)
                 {
@@ -289,6 +311,29 @@ namespace GateClient.ViewModel
                 }
                 Quartzer.Unlock(nameof(GetGateInfo));
             });
+        }
+        // 加载缓存票
+        private async void LoadCacheTicket()
+        {
+            var firstTask = GateDb?.GateinTask?.shipTaskList?.FirstOrDefault();
+            if (firstTask != null)
+            {
+                var response = await Util.UseHttpJson(appsettings.Node("api").Value<string>("getFightAllTicketInfo"), new
+                {
+                    code = GateCode,
+                    password = GatePassword,
+                    flightCode = firstTask.flightCode,
+                });
+                if (response.Success)
+                {
+                    var data = response.GetData<JObject>();
+                    if (data.Value<bool>("isSuccess"))
+                    {
+                        GateDb.GateinTask.TicketInfos = data.Value<JArray>("data").ToObject<List<TicketInfo>>();
+                    }
+                }
+            }
+            ChangeLeftTopText();
         }
 
         private PageCode CurrPageCode = PageCode.WaitCheck;
@@ -303,7 +348,7 @@ namespace GateClient.ViewModel
                 Title = "请检票";
                 IconRunning = false;
                 CurrPageCode = PageCode.WaitCheck;
-                LeftTopText = "东风号航班\r\n始:山咀港\r\n终:下川独湾港码头\r\n00:00-23:00";
+                ChangeLeftTopText();
                 StartBg = Util.ToColor("#CBE8FC");
                 EndBg = Util.ToColor("#3BB9F3");
                 ThemeBg = Util.ToBrush("#02A7F0");
