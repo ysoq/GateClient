@@ -17,10 +17,9 @@ namespace CodeCore
         public double RightBottomTextFontSize { get; set; } = 40;
         public Thickness RightBottomTextMargin { get; set; } = new Thickness(30, 53, 30, 53);
         public double StatusNameFontSize { get; set; } = 100;
-        public Thickness StatusNameMargin { get; set; } = new Thickness(0, 0, 0, 300);
+        public Thickness StatusNameMargin { get; set; } = new Thickness(0, 100, 0, 0);
         public Thickness BorderMargin { get; set; } = new Thickness(195, 0, 195, 271);
-        public Thickness BorderPadding { get; set; } = new Thickness(120);
-
-        
+        public int BorderWidth { get; set; } = 686;
+        public int IconWidth { get; set; } = 180;
     }
 }

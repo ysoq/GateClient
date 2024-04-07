@@ -20,44 +20,43 @@
             </LinearGradientBrush>
         </Grid.Background>
         <TextBlock
-            Margin="12,18"
+            Margin="{Binding Path=LeftTopTextMargin, Source={x:Static core:PageSizeInfo.Default}}"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
-            FontSize="24"
+            FontSize="{Binding Path=LeftTopTextFontSize, Source={x:Static core:PageSizeInfo.Default}}"
             Foreground="#fff"
             Style="{StaticResource alimama}"
             Text="{Binding Path=LeftTopText, ElementName=uc}" />
         <TextBlock
-            Margin="12,18"
+            Margin="{Binding Path=RightBottomTextMargin, Source={x:Static core:PageSizeInfo.Default}}"
             HorizontalAlignment="Right"
             VerticalAlignment="Bottom"
             FontSize="24"
             FontWeight="Regular"
             Foreground="#fff"
-            LineHeight="28"
             Style="{StaticResource alimama}"
             Text="{Binding Path=RightBottomText, ElementName=uc}" />
         <TextBlock
-            Margin="0,107,0,0"
+            Margin="{Binding Path=StatusNameMargin, Source={x:Static core:PageSizeInfo.Default}}"
             HorizontalAlignment="Center"
             VerticalAlignment="Top"
-            FontSize="60"
+            FontSize="{Binding Path=StatusNameFontSize, Source={x:Static core:PageSizeInfo.Default}}"
             FontWeight="Bold"
             Foreground="{Binding ElementName=uc, Path=ThemeBg}"
             Style="{StaticResource alimama}"
             Text="{Binding Path=StatusName, ElementName=uc}" />
         <Border
             x:Name="border"
-            Width="283"
+            Width="{Binding Path=BorderWidth, Source={x:Static core:PageSizeInfo.Default}}"
             Height="{Binding ElementName=border, Path=Width}"
-            Margin="0,219,0,0"
+            Margin="{Binding Path=BorderMargin, Source={x:Static core:PageSizeInfo.Default}}"
             HorizontalAlignment="Center"
             VerticalAlignment="Top"
             Background="{Binding ElementName=uc, Path=ThemeBg}"
             CornerRadius="999">
             <Path
                 x:Name="icon"
-                Width="180"
+                Width="{Binding Path=IconWidth, Source={x:Static core:PageSizeInfo.Default}}"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Data="{Binding ElementName=uc, Path=ThemeIcon}"

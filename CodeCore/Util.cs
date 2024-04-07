@@ -3,13 +3,7 @@ using CodeCore.ProwayGate;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Net.Http.Json;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 
@@ -36,6 +30,7 @@ namespace CodeCore
 
         public static void RegisterCodeCore(this ServiceCollection services)
         {
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             var jsonContent = File.ReadAllText("appsettings.json");
 
             var setting = new Appsettings()
@@ -43,7 +38,7 @@ namespace CodeCore
                 KeyValuePairs = Newtonsoft.Json.JsonConvert.DeserializeObject<JObject>(jsonContent),
 #if DEBUG
                 AppWidth = 800,
-                AppHeight = 600,
+                AppHeight = 1280,
                 Debug = true,
 #endif
 #if !DEBUG
@@ -65,16 +60,29 @@ namespace CodeCore
 
             var data = new PageSizeInfo();
 
-            if (Appsettings.Default?.AppWidth == 768)
+            if (Appsettings.Default?.AppWidth == 800 && Appsettings.Default?.AppHeight == 1280)
             {
-                data.BorderMargin = new Thickness(84, 0, 84, 117);
-                data.BorderPadding = new Thickness(100);
-                data.LeftTopTextFontSize = 24;
-                data.LeftTopTextMargin = new Thickness(17, 24, 0, 0);
+                data.BorderMargin = new Thickness(0, 640, 0, 0);
+                data.BorderWidth = 465;
+                data.IconWidth = 268;
                 data.StatusNameFontSize = 60;
-                data.StatusNameMargin = new Thickness(0, 0, 0, 200);
+                data.StatusNameMargin = new Thickness(0, 458, 0, 0);
+                data.LeftTopTextFontSize = 36;
+                data.LeftTopTextMargin = new Thickness(12, 18, 12, 18);
+                data.RightBottomTextFontSize = 36;
+                data.RightBottomTextMargin = new Thickness(12, 18, 12, 18);
+            }
+            else if (Appsettings.Default?.AppWidth == 800 && Appsettings.Default?.AppHeight == 600)
+            {
+                data.BorderMargin = new Thickness(0, 219, 0, 0);
+                data.BorderWidth = 283;
+                data.IconWidth = 180;
+                data.StatusNameFontSize = 60;
+                data.StatusNameMargin = new Thickness(0, 107, 0,0 );
+                data.LeftTopTextFontSize = 24;
+                data.LeftTopTextMargin = new Thickness(12, 18, 12, 18);
                 data.RightBottomTextFontSize = 24;
-                data.RightBottomTextMargin = new Thickness(18);
+                data.RightBottomTextMargin = new Thickness(12, 18, 12, 18);
             }
             PageSizeInfo.Default = data;
         }

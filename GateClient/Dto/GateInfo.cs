@@ -26,6 +26,11 @@ namespace GateClient.Dto
         {
             return GateInfo?.areaType;
         }
+
+        public Shiptasklist? CurrentShipTask()
+        {
+            return GateinTask?.shipTaskList?.FirstOrDefault();
+        }
     }
 
     public class GateBaseInfo
@@ -50,9 +55,14 @@ namespace GateClient.Dto
 
         public List<TicketInfo>? TicketInfos { get; set; }
 
+        private TicketInfo? CurrentTicketInfo { get; set; }
+
+        public TicketInfo? GetCurrentTicketInfo() => CurrentTicketInfo;
+
         public TicketInfo? Check(string idcard)
         {
-            return TicketInfos?.Find(x=> x.idcard == idcard);
+            CurrentTicketInfo = TicketInfos?.Find(x=> x.idcard == idcard);
+            return CurrentTicketInfo;
         }
     }
 
