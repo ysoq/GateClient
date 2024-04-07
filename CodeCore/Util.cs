@@ -38,7 +38,7 @@ namespace CodeCore
                 KeyValuePairs = Newtonsoft.Json.JsonConvert.DeserializeObject<JObject>(jsonContent),
 #if DEBUG
                 AppWidth = 800,
-                AppHeight = 1280,
+                AppHeight = 600,
                 Debug = true,
 #endif
 #if !DEBUG

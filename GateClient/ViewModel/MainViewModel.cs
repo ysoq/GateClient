@@ -15,6 +15,7 @@ using Newtonsoft.Json.Linq;
 using CodeCore.ProwayGate;
 using System.Reflection.Metadata;
 using Newtonsoft.Json;
+using System.Windows.Interop;
 
 namespace GateClient.ViewModel
 {
@@ -149,7 +150,6 @@ namespace GateClient.ViewModel
                 return;
             }
 
-            WeakReferenceMessenger.Default.Register<CheckMessage>(this, CheckChange);
             ChangeVersionText();
             Quartzer.CreateJob(this, nameof(ChangeVersionText), 10, ChangeVersionText);
 
@@ -228,15 +228,25 @@ namespace GateClient.ViewModel
             {
                 return;
             }
-            WeakReferenceMessenger.Default.Send(new CheckMessage(new GateInDto()
+#if DEBUG
+            if (content.Length == 18)
+            {
+                CertCheck(content);
+                return;
+            }
+#endif
+
+            CheckChange(new GateInDto()
             {
                 ticketKind = GateDb.GetAreaType(),
                 code = GateCode,
                 password = GatePassword,
                 faceVerify = null,
                 qrCode = content,
-            }));
+            });
         }
+
+        Queue<Action> openGateAgainCheck = new Queue<Action>();
 
         void CertCheck(string content)
         {
@@ -246,30 +256,52 @@ namespace GateClient.ViewModel
             }
 
             var cacheTicket = GateDb.GateinTask?.Check(content);
+            bool? faceVerify = null;
+
             if (cacheTicket != null)
             {
                 if (cacheTicket.isNeedFaceVerify == "true")
                 {
                     //TODO 需要人脸验证
-                }
 
+                    //faceVerify = true;
+
+                }
             }
-            WeakReferenceMessenger.Default.Send(new CheckMessage(new GateInDto()
+
+            var args = new GateInDto()
             {
                 ticketKind = GateDb.GetAreaType(),
                 code = GateCode,
                 password = GatePassword,
                 idcard = content,
-            }));
+                faceVerify = faceVerify
+            };
+            args.ticketNo = cacheTicket?.ticketNo;
+            args.idcard = content;
+
+            if (GateDb.GetAreaType() is "1" or "2") //&& GateDb?.GateInfo?.workMode is "2")
+            {
+                openGateAgainCheck.Enqueue(() => CheckChangeNotOpenGate(args));
+                OpenGate(1);
+                ChangePage2("请通行", "");
+            }
+            else
+            {
+                CheckChange(args);
+            }
         }
 
-        private async void CheckChange(object recipient, CheckMessage message)
+        /// <summary>
+        /// 验票
+        /// </summary>
+        /// <param name="args">验票入参</param>
+        private async void CheckChange(GateInDto args)
         {
             if (CurrPageCode == PageCode.Success || GateDb == null)
             {
                 return;
             }
-            var args = message.Value;
             if (args.ticketKind == "3")
             {
                 args.spotId = GateDb.GetSpotId();
@@ -280,20 +312,12 @@ namespace GateClient.ViewModel
                 args.shipId = current?.shipId;
                 args.flightId = current?.flightId;
                 args.flightShipCode = current?.flightShipCode;
-                if (GateDb.GateinTask?.GetCurrentTicketInfo()?.isNeedFaceVerify == "true")
-                {
-                    args.faceVerify = true;
-                }
-                else
-                {
-                    args.faceVerify = null;
-                }
             }
 
             var api = appsettings.Node("api").Value<string>("gateIn");
             Title = "检票中";
             IconRunning = true;
-            var response = await Util.UseHttpJson(api, message.Value);
+            var response = await Util.UseHttpJson(api, args);
             IconRunning = false;
             Title = "请检票";
 
@@ -327,6 +351,29 @@ namespace GateClient.ViewModel
             }
         }
 
+        private async void CheckChangeNotOpenGate(GateInDto args)
+        {
+            if (GateDb == null)
+            {
+                return;
+            }
+            if (args.ticketKind == "3")
+            {
+                args.spotId = GateDb.GetSpotId();
+            }
+            else
+            {
+                var current = GateDb.CurrentShipTask();
+                args.shipId = current?.shipId;
+                args.flightId = current?.flightId;
+                args.flightShipCode = current?.flightShipCode;
+            }
+
+            var api = appsettings.Node("api")?.Value<string>("gateIn")!;
+            await Util.UseHttpJson(api, args);
+        }
+
+
         private void OpenGate(int number)
         {
             gateUtil.SetIntimes(number);
@@ -341,7 +388,10 @@ namespace GateClient.ViewModel
             if (passResult == PassResult.LPass)
             {
                 ChangePage1();
-                // TODO 判断船票后验票
+                if(openGateAgainCheck.Any())
+                {
+                    openGateAgainCheck.Dequeue()?.Invoke();
+                }
             }
             // 正向过闸失败
             else if (passResult == PassResult.LFail)
