@@ -171,10 +171,16 @@ namespace GateClient.ViewModel
                 code = GateCode,
                 password = GatePassword,
             };
+
             Quartzer.CreateJob(this, nameof(GetGateInfo), 60, true, async () =>
             {
                 Quartzer.Lock(nameof(GetGateInfo));
                 var response = await Util.UseHttpJson(api, args, true);
+                if (!Util.Accredit)
+                {
+                    Title = "授权失败";
+                    return;
+                }
                 if (response.Success)
                 {
                     var data = response.GetData<JToken>()?.Value<JToken>("data")?.ToObject<GateDb>();
@@ -240,7 +246,7 @@ namespace GateClient.ViewModel
         private async void QrCheck(string content) => await QrCheckAsync(content);
         private async Task QrCheckAsync(string content)
         {
-            if (string.IsNullOrEmpty(content) || GateDb.GateInfo == null)
+            if (string.IsNullOrEmpty(content) || CurrPageCode == PageCode.Success)
             {
                 return;
             }
@@ -252,7 +258,7 @@ namespace GateClient.ViewModel
             }
 #endif
 
-            var (ex, ticketInfo) = await VerifyFace(null, content);
+            var ex = await VerifyFace(null, content);
             if (ex != null)
             {
                 ChangePage3(ex.Message, "");
@@ -267,7 +273,7 @@ namespace GateClient.ViewModel
                 faceVerify = true,
                 qrCode = content,
             };
-            CheckTicket(args, ticketInfo!);
+            CheckTicket(args);
         }
 
         Queue<Action> openGateAgainCheck = new Queue<Action>();
@@ -276,11 +282,11 @@ namespace GateClient.ViewModel
 
         async Task CertCheckAsync(string content)
         {
-            if (string.IsNullOrEmpty(content) || GateDb == null)
+            if (string.IsNullOrEmpty(content) || CurrPageCode == PageCode.Success)
             {
                 return;
             }
-            var (ex, ticketInfo) = await VerifyFace(content, null);
+            var ex = await VerifyFace(content, null);
             if (ex != null)
             {
                 ChangePage3(ex.Message, "");
@@ -296,28 +302,32 @@ namespace GateClient.ViewModel
                 faceVerify = true
             };
 
-            CheckTicket(args, ticketInfo!);
+            CheckTicket(args);
         }
 
-        private void CheckTicket(GateInDto args, TicketInfo ticketInfo)
+        private void CheckTicket(GateInDto args)
         {
-            args.ticketNo = ticketInfo?.ticketNo;
-            args.idcard = ticketInfo?.idcard;
+            CheckChange(args);
 
-            if (GateDb.GetAreaType() is "1" or "2" && GateDb?.GateInfo?.workMode is "2")
-            {
-                openGateAgainCheck.Enqueue(() => CheckChangeNotOpenGate(args));
-                OpenGate(1);
-                ChangePage2("请通行", "");
-            }
-            else
-            {
-                CheckChange(args);
-            }
+            //if (GateDb.GetAreaType() is "1" or "2" && GateDb?.GateInfo?.workMode is "2")
+            //{
+            //    openGateAgainCheck.Enqueue(() => CheckChangeNotOpenGate(args));
+            //    OpenGate(1);
+            //    ChangePage2("请通行", "");
+            //}
+            //else
+            //{
+            //    CheckChange(args);
+            //}
         }
 
-        async Task<(Exception?, TicketInfo?)> VerifyFace(string? idCard, string? qrCode)
+        async Task<Exception?> VerifyFace(string? idCard, string? qrCode)
         {
+            if (GateDb.GateInfo?.isOpenFaceVerify != "1")
+            {
+                return null;
+            }
+
             try
             {
                 IconRunning = true;
@@ -330,7 +340,7 @@ namespace GateClient.ViewModel
                 // 未找到航班任务
                 if (firstTask == null)
                 {
-                    return (new Exception("航班未开启"), null);
+                    return new Exception("航班未开启");
                 }
 
                 var cacheTicket = GateDb.Check(idCard, qrCode);
@@ -351,23 +361,25 @@ namespace GateClient.ViewModel
                         if (data?.Value<bool>("isSuccess") == true)
                         {
                             cacheTicket = data.Value<JObject>("data")?.ToObject<TicketInfo>();
-                        } 
+                        }
                         else
                         {
-                            return (new Exception(data?.Value<string>("msg") ?? "验票失败"), null);
+                            return new Exception(data?.Value<string>("msg") ?? "验票失败");
                         }
                     }
                 }
 
                 if (cacheTicket == null)
                 {
-                    return (new Exception("验票失败"), null);
+                    return new Exception("验票失败");
                 }
 
                 // 当前票需要人脸验证
                 if (cacheTicket.needFaceVerify == true && !string.IsNullOrEmpty(cacheTicket.picInfo))
                 {
                     Title = "请看摄像头";
+                    Sound.PlayAudio(SoundType.请看摄像头);
+
                     var response = await Util.UseHttpJson($"{ticketApi}/faceCheck/faceVerify.do", new
                     {
                         faceDeviceId,
@@ -377,13 +389,13 @@ namespace GateClient.ViewModel
                     {
                         if (response.GetData<JObject>()?.Value<bool>("success") == true)
                         {
-                            return (null, cacheTicket);
+                            return null;
                         }
                     }
                 }
                 else
                 {
-                    return (null, cacheTicket);
+                    return null;
                 }
             }
             catch (Exception ex)
@@ -395,7 +407,7 @@ namespace GateClient.ViewModel
                 IconRunning = false;
             }
 
-            return (new Exception("验票失败"), null);
+            return new Exception("验票失败");
         }
 
         /// <summary>
@@ -404,10 +416,6 @@ namespace GateClient.ViewModel
         /// <param name="args">验票入参</param>
         private async void CheckChange(GateInDto args)
         {
-            if (CurrPageCode == PageCode.Success || GateDb == null)
-            {
-                return;
-            }
             if (args.ticketKind == "3")
             {
                 args.spotId = GateDb.GetSpotId();
@@ -506,8 +514,6 @@ namespace GateClient.ViewModel
             }
         }
 
-
-
         #endregion
 
         #region 切换页面
@@ -567,6 +573,7 @@ namespace GateClient.ViewModel
         /// </summary>
         void ChangePage2(string title, string? subtitle)
         {
+            Sound.PlayAudio(SoundType.请通行);
             DispatcherHelper.CheckBeginInvokeOnUI(() =>
             {
                 Title = title;
@@ -587,6 +594,7 @@ namespace GateClient.ViewModel
         /// <param name="subtitle"></param>
         async void ChangePage3(string title, string? subtitle)
         {
+            Sound.PlayAudio(SoundType.验票失败);
             DispatcherHelper.CheckBeginInvokeOnUI(() =>
             {
                 Title = title;

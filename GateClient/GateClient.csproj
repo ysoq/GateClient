@@ -24,6 +24,21 @@
 		<None Remove="Expand\USBHIDHelper.dll" />
 		<None Remove="Expand\winmm.dll" />
 		<None Remove="Expand\zkSDTComm.dll" />
+		<None Remove="sound\请看摄像头.wav" />
+		<None Remove="sound\请通行.wav" />
+		<None Remove="sound\验票失败.wav" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include="sound\请看摄像头.wav">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="sound\请通行.wav">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="sound\验票失败.wav">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
 	</ItemGroup>
 
 	<ItemGroup>

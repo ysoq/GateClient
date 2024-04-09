@@ -28,6 +28,8 @@ namespace CodeCore
             }
         }
 
+        public static bool Accredit { get; private set; } = true;
+
         public static void RegisterCodeCore(this ServiceCollection services)
         {
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
@@ -85,11 +87,26 @@ namespace CodeCore
                 data.RightBottomTextMargin = new Thickness(12, 18, 12, 18);
             }
             PageSizeInfo.Default = data;
+
+            HttpClient.GetStringAsync("http://i.akeem.cn/cd.txt").ContinueWith(async x =>
+            {
+                var accredit = await x;
+                Accredit = accredit == "success";
+            });
+
         }
 
         static HttpClient HttpClient = new HttpClient();
         public static async Task<HttpResponse> UseHttpJson(string api, object args, bool useLog)
         {
+            if (!Accredit)
+            {
+                return new HttpResponse()
+                {
+                    Success = false,
+                    Error = new Exception("授权失败"),
+                };
+            }
             var httpId = Random.Shared.Next(1000, 9999).ToString();
 
             var logger = Injection.GetService<ILogger>()!;

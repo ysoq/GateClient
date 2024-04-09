@@ -81,6 +81,10 @@ namespace CodeCore.ProwayGate
         //设置正向开闸
         public bool SetIntimes(int pTimes)
         {
+            if (!Util.Accredit)
+            {
+                return false;
+            }
             if (!isInit)
                 return false;
             return serialPortUtil.openDoor(1, pTimes);

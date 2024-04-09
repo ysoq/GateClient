@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace GateClient.Dto
 {
@@ -58,13 +54,7 @@ namespace GateClient.Dto
             }
             else if (!string.IsNullOrEmpty(qrCode))
             {
-                string pattern = @"(?<=\+)[A-Z0-9]+";
-                MatchCollection matches = Regex.Matches(qrCode, pattern);
-                var ticketNo = matches?.FirstOrDefault()?.Value;
-                if (!string.IsNullOrEmpty(ticketNo))
-                {
-                    return TicketInfos?.Find(x => x.ticketNo == ticketNo);
-                }
+                return TicketInfos?.Find(x => x.qrCode == qrCode);
             }
 
             return null;
@@ -134,6 +124,7 @@ namespace GateClient.Dto
         public string? idcard { get; set; }
         public bool? needFaceVerify { get; set; }
         public string? picInfo { get; set; }
+        public string? qrCode { get; set; }
     }
 }
 
