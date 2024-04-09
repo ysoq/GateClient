@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace GateClient.Dto
@@ -31,6 +32,52 @@ namespace GateClient.Dto
         {
             return GateinTask?.shipTaskList?.FirstOrDefault();
         }
+
+        public void SetData(GateDb? data)
+        {
+            GateInfo = data?.GateInfo;
+            GateinTask = data?.GateinTask;
+        }
+
+        public string? TicketInfoByFlightCode { get; set; }
+
+        public List<TicketInfo>? TicketInfos { get; private set; }
+
+        public void SetTicketInfo(string? flightCode, List<TicketInfo>? list)
+        {
+            TicketInfoByFlightCode = flightCode;
+            TicketInfos = list;
+        }
+
+
+        public TicketInfo? Check(string? idCard, string? qrCode)
+        {
+            if (!string.IsNullOrEmpty(idCard))
+            {
+                return TicketInfos?.Find(x => x.idcard == idCard);
+            }
+            else if (!string.IsNullOrEmpty(qrCode))
+            {
+                string pattern = @"(?<=\+)[A-Z0-9]+";
+                MatchCollection matches = Regex.Matches(qrCode, pattern);
+                var ticketNo = matches?.FirstOrDefault()?.Value;
+                if (!string.IsNullOrEmpty(ticketNo))
+                {
+                    return TicketInfos?.Find(x => x.ticketNo == ticketNo);
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 获取当前航班任务
+        /// </summary>
+        /// <returns></returns>
+        public Shiptasklist? GetCurrentTask()
+        {
+            return GateinTask?.shipTaskList?.FirstOrDefault();
+        }
     }
 
     public class GateBaseInfo
@@ -53,17 +100,7 @@ namespace GateClient.Dto
         public Shiptasklist[]? shipTaskList { get; set; }
         public Spottasklist[]? spotTaskList { get; set; }
 
-        public List<TicketInfo>? TicketInfos { get; set; }
 
-        private TicketInfo? CurrentTicketInfo { get; set; }
-
-        public TicketInfo? GetCurrentTicketInfo() => CurrentTicketInfo;
-
-        public TicketInfo? Check(string idcard)
-        {
-            CurrentTicketInfo = TicketInfos?.Find(x=> x.idcard == idcard);
-            return CurrentTicketInfo;
-        }
     }
 
     public class Shiptasklist
@@ -95,7 +132,8 @@ namespace GateClient.Dto
     {
         public string? ticketNo { get; set; }
         public string? idcard { get; set; }
-        public string? isNeedFaceVerify { get; set; }
+        public bool? needFaceVerify { get; set; }
+        public string? picInfo { get; set; }
     }
 }
 

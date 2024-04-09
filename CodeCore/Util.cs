@@ -78,7 +78,7 @@ namespace CodeCore
                 data.BorderWidth = 283;
                 data.IconWidth = 180;
                 data.StatusNameFontSize = 60;
-                data.StatusNameMargin = new Thickness(0, 107, 0,0 );
+                data.StatusNameMargin = new Thickness(0, 107, 0, 0);
                 data.LeftTopTextFontSize = 24;
                 data.LeftTopTextMargin = new Thickness(12, 18, 12, 18);
                 data.RightBottomTextFontSize = 24;
@@ -88,12 +88,12 @@ namespace CodeCore
         }
 
         static HttpClient HttpClient = new HttpClient();
-        public static async Task<HttpResponse> UseHttpJson(string api, object args)
+        public static async Task<HttpResponse> UseHttpJson(string api, object args, bool useLog)
         {
             var httpId = Random.Shared.Next(1000, 9999).ToString();
 
             var logger = Injection.GetService<ILogger>()!;
-            logger.Info(httpId, api, JsonConvert.SerializeObject(args));
+            logger.IfInfo(useLog, httpId, api, JsonConvert.SerializeObject(args));
             var resultData = new HttpResponse();
             try
             {
@@ -110,7 +110,7 @@ namespace CodeCore
 
                 resultData.Success = true;
                 resultData.JsonData = await response.Content.ReadAsStringAsync();
-                logger.Error(httpId, resultData.JsonData);
+                logger.IfInfo(useLog, httpId, resultData.JsonData);
             }
             catch (Exception ex)
             {

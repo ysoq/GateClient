@@ -16,6 +16,9 @@ using CodeCore.ProwayGate;
 using System.Reflection.Metadata;
 using Newtonsoft.Json;
 using System.Windows.Interop;
+using System.Windows.Documents;
+using System.Text.RegularExpressions;
+using System.Windows.Markup;
 
 namespace GateClient.ViewModel
 {
@@ -157,11 +160,12 @@ namespace GateClient.ViewModel
         }
 
 
-        private GateDb? GateDb { get; set; }
+        private GateDb GateDb { get; } = new GateDb();
+
         // 更新闸机信息，触发间隔一分钟
         private void GetGateInfo()
         {
-            var api = appsettings.Node("api")!.Value<string>("getGateInfo");
+            var api = appsettings.Node("api")!.Value<string>("getGateInfo")!;
             var args = new
             {
                 code = GateCode,
@@ -170,10 +174,13 @@ namespace GateClient.ViewModel
             Quartzer.CreateJob(this, nameof(GetGateInfo), 60, true, async () =>
             {
                 Quartzer.Lock(nameof(GetGateInfo));
-                var response = await Util.UseHttpJson(api, args);
+                var response = await Util.UseHttpJson(api, args, true);
                 if (response.Success)
                 {
-                    GateDb = response.GetData<JToken>()?.Value<JToken>("data")?.ToObject<GateDb>();
+                    var data = response.GetData<JToken>()?.Value<JToken>("data")?.ToObject<GateDb>();
+
+                    GateDb.SetData(data);
+
                     if (CurrPageCode == PageCode.NetworkError)
                     {
                         ChangePage1();
@@ -182,7 +189,8 @@ namespace GateClient.ViewModel
                     {
                         InitPageEnd();
                     }
-                    LoadCacheTicket();
+                    await LoadCacheTicket();
+                    ChangeLeftTopText();
                 }
                 else if (CurrPageCode == PageCode.Init)
                 {
@@ -195,78 +203,88 @@ namespace GateClient.ViewModel
                 Quartzer.Unlock(nameof(GetGateInfo));
             });
         }
+
         // 加载缓存票
-        private async void LoadCacheTicket()
+        private async Task LoadCacheTicket()
         {
-            var firstTask = GateDb?.GateinTask?.shipTaskList?.FirstOrDefault();
-            if (firstTask != null)
+            var currFlightCode = GateDb.GetCurrentTask()?.flightCode;
+            if (string.IsNullOrEmpty(currFlightCode))
             {
-                var response = await Util.UseHttpJson(appsettings.Node("api").Value<string>("getFightAllTicketInfo"), new
+                GateDb.SetTicketInfo(currFlightCode, null);
+                return;
+            }
+            if (currFlightCode == GateDb.TicketInfoByFlightCode)
+            {
+                return;
+            }
+
+            var response = await Util.UseHttpJson(appsettings.Node("api")!.Value<string>("getFightAllTicketInfo")!, new
+            {
+                code = GateCode,
+                password = GatePassword,
+                flightCode = currFlightCode,
+            }, false);
+            if (response.Success)
+            {
+                var data = response.GetData<JObject>();
+                if (data?.Value<bool>("isSuccess") == true)
                 {
-                    code = GateCode,
-                    password = GatePassword,
-                    flightCode = firstTask.flightCode,
-                });
-                if (response.Success)
-                {
-                    var data = response.GetData<JObject>();
-                    if (data.Value<bool>("isSuccess"))
-                    {
-                        GateDb.GateinTask.TicketInfos = data.Value<JArray>("data").ToObject<List<TicketInfo>>();
-                    }
+                    GateDb.SetTicketInfo(currFlightCode, data.Value<JArray>("data")?.ToObject<List<TicketInfo>>());
                 }
             }
-            ChangeLeftTopText();
         }
         #endregion
 
         #region 验票
 
-        private void QrCheck(string content)
+        private async void QrCheck(string content) => await QrCheckAsync(content);
+        private async Task QrCheckAsync(string content)
         {
-            if (string.IsNullOrEmpty(content) || GateDb == null)
+            if (string.IsNullOrEmpty(content) || GateDb.GateInfo == null)
             {
                 return;
             }
 #if DEBUG
             if (content.Length == 18)
             {
-                CertCheck(content);
+                await CertCheckAsync(content);
                 return;
             }
 #endif
 
-            CheckChange(new GateInDto()
+            var (ex, ticketInfo) = await VerifyFace(null, content);
+            if (ex != null)
+            {
+                ChangePage3(ex.Message, "");
+                return;
+            }
+
+            var args = new GateInDto()
             {
                 ticketKind = GateDb.GetAreaType(),
                 code = GateCode,
                 password = GatePassword,
-                faceVerify = null,
+                faceVerify = true,
                 qrCode = content,
-            });
+            };
+            CheckTicket(args, ticketInfo!);
         }
 
         Queue<Action> openGateAgainCheck = new Queue<Action>();
 
-        void CertCheck(string content)
+        async void CertCheck(string content) => await CertCheckAsync(content);
+
+        async Task CertCheckAsync(string content)
         {
             if (string.IsNullOrEmpty(content) || GateDb == null)
             {
                 return;
             }
-
-            var cacheTicket = GateDb.GateinTask?.Check(content);
-            bool? faceVerify = null;
-
-            if (cacheTicket != null)
+            var (ex, ticketInfo) = await VerifyFace(content, null);
+            if (ex != null)
             {
-                if (cacheTicket.isNeedFaceVerify == "true")
-                {
-                    //TODO 需要人脸验证
-
-                    //faceVerify = true;
-
-                }
+                ChangePage3(ex.Message, "");
+                return;
             }
 
             var args = new GateInDto()
@@ -275,12 +293,18 @@ namespace GateClient.ViewModel
                 code = GateCode,
                 password = GatePassword,
                 idcard = content,
-                faceVerify = faceVerify
+                faceVerify = true
             };
-            args.ticketNo = cacheTicket?.ticketNo;
-            args.idcard = content;
 
-            if (GateDb.GetAreaType() is "1" or "2") //&& GateDb?.GateInfo?.workMode is "2")
+            CheckTicket(args, ticketInfo!);
+        }
+
+        private void CheckTicket(GateInDto args, TicketInfo ticketInfo)
+        {
+            args.ticketNo = ticketInfo?.ticketNo;
+            args.idcard = ticketInfo?.idcard;
+
+            if (GateDb.GetAreaType() is "1" or "2" && GateDb?.GateInfo?.workMode is "2")
             {
                 openGateAgainCheck.Enqueue(() => CheckChangeNotOpenGate(args));
                 OpenGate(1);
@@ -290,6 +314,88 @@ namespace GateClient.ViewModel
             {
                 CheckChange(args);
             }
+        }
+
+        async Task<(Exception?, TicketInfo?)> VerifyFace(string? idCard, string? qrCode)
+        {
+            try
+            {
+                IconRunning = true;
+                Title = "检票中";
+                var api = appsettings.Node("api")!;
+                var ticketApi = api.Value<string>("ticketApi");
+                var getFaceVerifyInfo = api.Value<string>("getFaceVerifyInfo")!;
+                var faceDeviceId = appsettings.Node("gate")!.Value<string>("faceTermId");
+                var firstTask = GateDb.GetCurrentTask();
+                // 未找到航班任务
+                if (firstTask == null)
+                {
+                    return (new Exception("航班未开启"), null);
+                }
+
+                var cacheTicket = GateDb.Check(idCard, qrCode);
+                // 缓存票未找到，则调用接口获取票信息
+                if (cacheTicket == null)
+                {
+                    var response = await Util.UseHttpJson(getFaceVerifyInfo, new
+                    {
+                        code = GateCode,
+                        password = GatePassword,
+                        firstTask.flightCode,
+                        idcard = idCard,
+                        qrCode = qrCode,
+                    }, true);
+                    if (response.Success)
+                    {
+                        var data = response.GetData<JObject>();
+                        if (data?.Value<bool>("isSuccess") == true)
+                        {
+                            cacheTicket = data.Value<JObject>("data")?.ToObject<TicketInfo>();
+                        } 
+                        else
+                        {
+                            return (new Exception(data?.Value<string>("msg") ?? "验票失败"), null);
+                        }
+                    }
+                }
+
+                if (cacheTicket == null)
+                {
+                    return (new Exception("验票失败"), null);
+                }
+
+                // 当前票需要人脸验证
+                if (cacheTicket.needFaceVerify == true && !string.IsNullOrEmpty(cacheTicket.picInfo))
+                {
+                    Title = "请看摄像头";
+                    var response = await Util.UseHttpJson($"{ticketApi}/faceCheck/faceVerify.do", new
+                    {
+                        faceDeviceId,
+                        faceBase64 = cacheTicket.picInfo
+                    }, false);
+                    if (response.Success)
+                    {
+                        if (response.GetData<JObject>()?.Value<bool>("success") == true)
+                        {
+                            return (null, cacheTicket);
+                        }
+                    }
+                }
+                else
+                {
+                    return (null, cacheTicket);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex);
+            }
+            finally
+            {
+                IconRunning = false;
+            }
+
+            return (new Exception("验票失败"), null);
         }
 
         /// <summary>
@@ -314,10 +420,10 @@ namespace GateClient.ViewModel
                 args.flightShipCode = current?.flightShipCode;
             }
 
-            var api = appsettings.Node("api").Value<string>("gateIn");
+            var api = appsettings.Node("api")?.Value<string>("gateIn")!;
             Title = "检票中";
             IconRunning = true;
-            var response = await Util.UseHttpJson(api, args);
+            var response = await Util.UseHttpJson(api, args, true);
             IconRunning = false;
             Title = "请检票";
 
@@ -327,7 +433,7 @@ namespace GateClient.ViewModel
                 if (data?.Value<bool>("isSuccess") == true)
                 {
                     var gateData = data?.Value<JObject>("data");
-                    var kindName = gateData?.Value<string>("nameZhcn");
+                    var kindName = gateData?.Value<string>("nameZhcn") ?? "请通行";
                     var msg = data?.Value<string>("msg");
                     OpenGate(1);
                     ChangePage2(kindName, msg);
@@ -341,7 +447,7 @@ namespace GateClient.ViewModel
                     }
                     else
                     {
-                        ChangePage3(msg, null);
+                        ChangePage3(msg!, null);
                     }
                 }
             }
@@ -370,7 +476,7 @@ namespace GateClient.ViewModel
             }
 
             var api = appsettings.Node("api")?.Value<string>("gateIn")!;
-            await Util.UseHttpJson(api, args);
+            await Util.UseHttpJson(api, args, true);
         }
 
 
@@ -388,7 +494,7 @@ namespace GateClient.ViewModel
             if (passResult == PassResult.LPass)
             {
                 ChangePage1();
-                if(openGateAgainCheck.Any())
+                while (openGateAgainCheck.Any())
                 {
                     openGateAgainCheck.Dequeue()?.Invoke();
                 }
@@ -459,7 +565,7 @@ namespace GateClient.ViewModel
         /// <summary>
         /// 验票成功
         /// </summary>
-        void ChangePage2(string title, string subtitle)
+        void ChangePage2(string title, string? subtitle)
         {
             DispatcherHelper.CheckBeginInvokeOnUI(() =>
             {
@@ -479,7 +585,7 @@ namespace GateClient.ViewModel
         /// </summary>
         /// <param name="title"></param>
         /// <param name="subtitle"></param>
-        async void ChangePage3(string title, string subtitle)
+        async void ChangePage3(string title, string? subtitle)
         {
             DispatcherHelper.CheckBeginInvokeOnUI(() =>
             {
