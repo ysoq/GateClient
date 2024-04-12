@@ -24,7 +24,53 @@ namespace GateClient
         {
             DispatcherHelper.Initialize();
             Util.ConfigureServices(ConfigureServices);
+
+            //Task线程内未捕获异常处理事件
+            TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+
+            //UI线程未捕获异常处理事件（UI主线程）
+            this.DispatcherUnhandledException += App_DispatcherUnhandledException;
+
+            //非UI线程未捕获异常处理事件(例如自己创建的一个子线程)
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
         }
+
+        private void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+        {
+            var log = Util.Injection.GetService<ILogger>();
+            try
+            {
+                log?.Error(e.Exception, "程序运行出错1:Task");
+            }
+            catch (Exception ex)
+            {
+                log?.Error(ex, "程序运行出错1:Task");
+            }
+            finally
+            {
+                e.SetObserved();
+            }
+        }
+
+        private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            var log = Util.Injection.GetService<ILogger>();
+            log?.Error("程序运行出错2");
+            MessageBox.Show("程序运行出错[2]");
+            if (e.ExceptionObject is System.Exception)
+            {
+                log?.Error((System.Exception)e.ExceptionObject, "程序运行出错2");
+            }
+            Thread.Sleep(1000);
+        }
+
+        private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+        {
+            var log = Util.Injection.GetService<ILogger>();
+            log?.Error(e.Exception, "程序运行出错3");
+            e.Handled = true;
+        }
+
 
         private void ConfigureServices(ServiceCollection services)
         {

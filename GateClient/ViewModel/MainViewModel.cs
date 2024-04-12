@@ -380,7 +380,7 @@ namespace GateClient.ViewModel
                     Title = "请看摄像头";
                     Sound.PlayAudio(SoundType.请看摄像头);
 
-                    var response = await Util.UseHttpJson($"{ticketApi}/faceCheck/faceVerify.do", new
+                    var response = await Util.UseHttpJson($"{ticketApi}/faceCheck/faceVerify", new
                     {
                         faceDeviceId,
                         faceBase64 = cacheTicket.picInfo
