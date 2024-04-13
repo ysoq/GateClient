@@ -48,6 +48,11 @@ namespace GateClient.ViewModel
 
         [ObservableProperty]
         private Geometry? themeIcon;
+
+        const string ExigencyValue = "gate:exigency";
+        // 消防模式
+        private bool ExigencyMode = false;
+
         private readonly Appsettings appsettings;
         private readonly GateUtil gateUtil;
         private readonly ILogger logger;
@@ -145,11 +150,15 @@ namespace GateClient.ViewModel
             catch (Exception ex)
             {
                 logger.Error(ex);
-                LeftTopText = ex.Message;
-                StartBg = Util.ToColor("#F9D3DD");
-                EndBg = Util.ToColor("#E54E63");
-                ThemeBg = Util.ToBrush("#D9001B");
-                Title = "初始化失败";
+                DispatcherHelper.CheckBeginInvokeOnUI(() =>
+                {
+                    LeftTopText = ex.Message;
+                    StartBg = Util.ToColor("#F9D3DD");
+                    EndBg = Util.ToColor("#E54E63");
+                    ThemeBg = Util.ToBrush("#D9001B");
+                    Title = "初始化失败";
+                });
+
                 return;
             }
 
@@ -175,7 +184,7 @@ namespace GateClient.ViewModel
             Quartzer.CreateJob(this, nameof(GetGateInfo), 60, true, async () =>
             {
                 Quartzer.Lock(nameof(GetGateInfo));
-                var response = await Util.UseHttpJson(api, args, true);
+                var response = await Util.UseHttpJson(api, args);
                 if (!Util.Accredit)
                 {
                     Title = "授权失败";
@@ -229,7 +238,7 @@ namespace GateClient.ViewModel
                 code = GateCode,
                 password = GatePassword,
                 flightCode = currFlightCode,
-            }, false);
+            });
             if (response.Success)
             {
                 var data = response.GetData<JObject>();
@@ -246,7 +255,25 @@ namespace GateClient.ViewModel
         private async void QrCheck(string content) => await QrCheckAsync(content);
         private async Task QrCheckAsync(string content)
         {
-            if (string.IsNullOrEmpty(content) || CurrPageCode == PageCode.Success)
+            // 消防模式
+            if (ExigencyValue.Equals(content))
+            {
+                ChangePage1();
+
+                ChangeVersionText();
+                ExigencyMode = !ExigencyMode;
+
+                gateUtil.SetFiremodel(ExigencyMode);
+
+                if (!ExigencyMode)
+                {
+                    gateUtil.SetIntimes(0);
+                }
+
+                return;
+            }
+
+            if (string.IsNullOrEmpty(content) || (CurrPageCode == PageCode.Success && !ExigencyMode))
             {
                 return;
             }
@@ -282,7 +309,7 @@ namespace GateClient.ViewModel
 
         async Task CertCheckAsync(string content)
         {
-            if (string.IsNullOrEmpty(content) || CurrPageCode == PageCode.Success)
+            if (string.IsNullOrEmpty(content) || (CurrPageCode == PageCode.Success && !ExigencyMode))
             {
                 return;
             }
@@ -338,7 +365,7 @@ namespace GateClient.ViewModel
                 var faceDeviceId = appsettings.Node("gate")!.Value<string>("faceTermId");
                 var firstTask = GateDb.GetCurrentTask();
                 // 未找到航班任务
-                if (firstTask == null)
+                if (firstTask == null && GateDb.GetAreaType() != "3")
                 {
                     return new Exception("航班未开启");
                 }
@@ -351,10 +378,10 @@ namespace GateClient.ViewModel
                     {
                         code = GateCode,
                         password = GatePassword,
-                        firstTask.flightCode,
+                        flightCode = firstTask?.flightCode,
                         idcard = idCard,
                         qrCode = qrCode,
-                    }, true);
+                    });
                     if (response.Success)
                     {
                         var data = response.GetData<JObject>();
@@ -384,7 +411,7 @@ namespace GateClient.ViewModel
                     {
                         faceDeviceId,
                         faceBase64 = cacheTicket.picInfo
-                    }, false);
+                    });
                     if (response.Success)
                     {
                         if (response.GetData<JObject>()?.Value<bool>("success") == true)
@@ -431,7 +458,7 @@ namespace GateClient.ViewModel
             var api = appsettings.Node("api")?.Value<string>("gateIn")!;
             Title = "检票中";
             IconRunning = true;
-            var response = await Util.UseHttpJson(api, args, true);
+            var response = await Util.UseHttpJson(api, args);
             IconRunning = false;
             Title = "请检票";
 
@@ -484,13 +511,22 @@ namespace GateClient.ViewModel
             }
 
             var api = appsettings.Node("api")?.Value<string>("gateIn")!;
-            await Util.UseHttpJson(api, args, true);
+            await Util.UseHttpJson(api, args);
         }
 
 
-        private void OpenGate(int number)
+        private async void OpenGate(int number)
         {
-            gateUtil.SetIntimes(number);
+            var isOk = gateUtil.SetIntimes(number);
+            await Quartzer.Remove("autoCloseGate");
+            var timeout = isOk ? appsettings.Node("gate").Value<int>("timeout") : 5;
+            Quartzer.Once(this, "autoCloseGate", timeout, () =>
+            {
+                if (CurrPageCode == PageCode.Success)
+                {
+                    ChangePage1();
+                }
+            });
         }
 
         // 过闸回调
@@ -507,11 +543,6 @@ namespace GateClient.ViewModel
                     openGateAgainCheck.Dequeue()?.Invoke();
                 }
             }
-            // 正向过闸失败
-            else if (passResult == PassResult.LFail)
-            {
-                ChangePage1();
-            }
         }
 
         #endregion
@@ -521,10 +552,14 @@ namespace GateClient.ViewModel
         // 更新右下角信息，触发间隔10秒
         private void ChangeVersionText()
         {
-            var date = DateTime.Now.ToString("HH:mm");
-            var spotName = GateDb?.GetSpotName();
-            var code = appsettings.Node("account")?.Value<string>("code");
-            RightBottomText = $" {spotName} {code} {date} {appsettings.Version}";
+            DispatcherHelper.CheckBeginInvokeOnUI(() =>
+            {
+                var date = DateTime.Now.ToString("HH:mm");
+                var spotName = GateDb?.GetSpotName();
+                var code = appsettings.Node("account")?.Value<string>("code");
+                var exigencyMode = ExigencyMode ? "紧急模式" : "";
+                RightBottomText = $"{exigencyMode} {spotName} {code} {date} {appsettings.Version}";
+            });
         }
 
         private void ChangeLeftTopText()

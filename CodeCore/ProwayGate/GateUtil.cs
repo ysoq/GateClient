@@ -73,8 +73,10 @@ namespace CodeCore.ProwayGate
             return serialPortUtil.setPassModel(pModel);
         }
 
+        bool fireModel = false;
         public bool SetFiremodel(bool pModel)
         {
+            fireModel = pModel;
             return serialPortUtil.setFireModel(pModel);
         }
 
@@ -87,7 +89,12 @@ namespace CodeCore.ProwayGate
             }
             if (!isInit)
                 return false;
-            return serialPortUtil.openDoor(1, pTimes);
+            var ok = serialPortUtil.openDoor(1, pTimes);
+            if(fireModel)
+            {
+                return false;
+            }
+            return ok;
         }
 
         public bool SetOuttimes(int pTimes)

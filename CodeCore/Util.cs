@@ -97,7 +97,7 @@ namespace CodeCore
         }
 
         static HttpClient HttpClient = new HttpClient();
-        public static async Task<HttpResponse> UseHttpJson(string api, object args, bool useLog)
+        public static async Task<HttpResponse> UseHttpJson(string api, object args)
         {
             if (!Accredit)
             {
@@ -110,7 +110,7 @@ namespace CodeCore
             var httpId = Random.Shared.Next(1000, 9999).ToString();
 
             var logger = Injection.GetService<ILogger>()!;
-            logger.IfInfo(useLog, httpId, api, JsonConvert.SerializeObject(args));
+            logger.Info(httpId, api, JsonConvert.SerializeObject(args));
             var resultData = new HttpResponse();
             try
             {
@@ -127,7 +127,7 @@ namespace CodeCore
 
                 resultData.Success = true;
                 resultData.JsonData = await response.Content.ReadAsStringAsync();
-                logger.IfInfo(useLog, httpId, resultData.JsonData);
+                logger.Info(httpId, resultData.JsonData);
             }
             catch (Exception ex)
             {
