@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.Windows.Media;
@@ -9,16 +8,10 @@ using System.Threading.Tasks;
 using CodeCore;
 using CodeCore.Impl;
 using GateClient.Dto;
-using GateClient.Messager;
-using CommunityToolkit.Mvvm.Messaging;
 using Newtonsoft.Json.Linq;
 using CodeCore.ProwayGate;
-using System.Reflection.Metadata;
 using Newtonsoft.Json;
-using System.Windows.Interop;
-using System.Windows.Documents;
-using System.Text.RegularExpressions;
-using System.Windows.Markup;
+using System.Reflection.Metadata;
 
 namespace GateClient.ViewModel
 {
@@ -252,11 +245,25 @@ namespace GateClient.ViewModel
 
         #region 验票
 
-        private async void QrCheck(string content) => await QrCheckAsync(content);
-        private async Task QrCheckAsync(string content)
+
+        Queue<Action> openGateAgainCheck = new Queue<Action>();
+        private async void QrCheck(string content) => await CheckTicket(null, content);
+
+        async void CertCheck(string content) => await CheckTicket(content, null);
+
+
+        /// <summary>
+        /// 检票中
+        /// </summary>
+        bool Checking = false;
+        private async Task CheckTicket(string? idCard, string? qrCode)
         {
+            if (string.IsNullOrEmpty(idCard) && string.IsNullOrEmpty(qrCode))
+            {
+                return;
+            }
             // 消防模式
-            if (ExigencyValue.Equals(content))
+            if (ExigencyValue.Equals(qrCode))
             {
                 ChangePage1();
 
@@ -269,67 +276,45 @@ namespace GateClient.ViewModel
                 {
                     gateUtil.SetIntimes(0);
                 }
-
                 return;
             }
 
-            if (string.IsNullOrEmpty(content) || (CurrPageCode == PageCode.Success && !ExigencyMode))
+            if (Checking || (CurrPageCode == PageCode.Success && !ExigencyMode))
             {
                 return;
             }
-#if DEBUG
-            if (content.Length == 18)
+            try
             {
-                await CertCheckAsync(content);
-                return;
+
+                Checking = true;
+
+                var ex = await VerifyFace(idCard, qrCode);
+                if (ex != null)
+                {
+                    ChangePage3(ex.Message, "");
+                    return;
+                }
+
+                var args = new GateInDto()
+                {
+                    ticketKind = GateDb.GetAreaType(),
+                    code = GateCode,
+                    password = GatePassword,
+                    faceVerify = true,
+                    qrCode = qrCode,
+                    idcard = idCard
+                };
+                CheckTicket(args);
+
             }
-#endif
-
-            var ex = await VerifyFace(null, content);
-            if (ex != null)
+            catch (Exception ex)
             {
-                ChangePage3(ex.Message, "");
-                return;
+                logger.Error(ex);
             }
-
-            var args = new GateInDto()
+            finally
             {
-                ticketKind = GateDb.GetAreaType(),
-                code = GateCode,
-                password = GatePassword,
-                faceVerify = true,
-                qrCode = content,
-            };
-            CheckTicket(args);
-        }
-
-        Queue<Action> openGateAgainCheck = new Queue<Action>();
-
-        async void CertCheck(string content) => await CertCheckAsync(content);
-
-        async Task CertCheckAsync(string content)
-        {
-            if (string.IsNullOrEmpty(content) || (CurrPageCode == PageCode.Success && !ExigencyMode))
-            {
-                return;
+                Checking = false;
             }
-            var ex = await VerifyFace(content, null);
-            if (ex != null)
-            {
-                ChangePage3(ex.Message, "");
-                return;
-            }
-
-            var args = new GateInDto()
-            {
-                ticketKind = GateDb.GetAreaType(),
-                code = GateCode,
-                password = GatePassword,
-                idcard = content,
-                faceVerify = true
-            };
-
-            CheckTicket(args);
         }
 
         private void CheckTicket(GateInDto args)
@@ -532,16 +517,12 @@ namespace GateClient.ViewModel
         // 过闸回调
         private void GateUtil_handler(PassResult passResult)
         {
-            logger.Info("gate callback" + passResult.ToString());
+            logger.Info("gate callback " + passResult.ToString());
 
-            // 正向过一人
-            if (passResult == PassResult.LPass)
+            ChangePage1();
+            while (openGateAgainCheck.Any())
             {
-                ChangePage1();
-                while (openGateAgainCheck.Any())
-                {
-                    openGateAgainCheck.Dequeue()?.Invoke();
-                }
+                openGateAgainCheck.Dequeue()?.Invoke();
             }
         }
 
@@ -608,7 +589,7 @@ namespace GateClient.ViewModel
         /// </summary>
         void ChangePage2(string title, string? subtitle)
         {
-            Sound.PlayAudio(SoundType.请通行);
+            Sound.PlayAudio(SoundType.检票成功, title);
             DispatcherHelper.CheckBeginInvokeOnUI(() =>
             {
                 Title = title;
@@ -629,7 +610,7 @@ namespace GateClient.ViewModel
         /// <param name="subtitle"></param>
         async void ChangePage3(string title, string? subtitle)
         {
-            Sound.PlayAudio(SoundType.验票失败);
+            Sound.PlayAudio(SoundType.检票失败);
             DispatcherHelper.CheckBeginInvokeOnUI(() =>
             {
                 Title = title;

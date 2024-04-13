@@ -19,31 +19,78 @@ namespace CodeCore
             }
         }
 
-        public static bool PlayAudio(SoundType sound)
+        public static void PlayAudio(SoundType sound, string? appendText = null)
         {
-            var audioFile = $"{SoundDir}\\{sound}.wav";
+            if (!string.IsNullOrEmpty(appendText))
+            {
+                PlayAudio(RemoveSpecialCharacters(sound.ToString() + appendText));
+            }
+            else
+            {
+                PlayAudio(RemoveSpecialCharacters(sound.ToString()));
+            }
+        }
+        static HttpClient HttpClient { get; set; } = new HttpClient();
+        public static async void PlayAudio(string sound)
+        {
+            var logger = Util.Injection.GetService<ILogger>();
+            logger?.Info("sound:", sound);
 
-            if (!File.Exists(audioFile)) return false;
+            var audioFile = GetSoundPath(sound);
+
+            if (!File.Exists(audioFile))
+            {
+                try
+                {
+                    var api = Appsettings.Default.Node("api").Value<string>("soundApi");
+                    var message = new HttpRequestMessage(HttpMethod.Get, $"{api}/api/tts/v1?text={sound}");
+                    var response = await HttpClient.SendAsync(message);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var content = await response.Content.ReadAsByteArrayAsync();
+                        await File.WriteAllBytesAsync(audioFile, content);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger?.Error(ex);
+                }
+
+            }
+            if (!File.Exists(audioFile)) return;
             try
             {
                 AddAudio(audioFile);
                 Devices[audioFile].reader.Position = 0;
                 Devices[audioFile].device.Play();
-                return true;
+                return;
             }
             catch (Exception ex)
             {
-                Util.Injection.GetService<ILogger>()?.Error(ex, "语音播报出错");
-                return false;
+                logger?.Error(ex, "语音播报出错");
+                return;
             }
         }
+
+        private static string GetSoundPath(string sound)
+        {
+            var audioFile = $"{SoundDir}\\{sound}.wav";
+            return audioFile;
+        }
         record AudioInfo(WaveOutEvent device, AudioFileReader reader);
+
+        public static string RemoveSpecialCharacters(string fileName)
+        {
+            var invalidChars = Path.GetInvalidFileNameChars();
+            var cleanedFileName = string.Join("", fileName.Split(invalidChars, StringSplitOptions.RemoveEmptyEntries));
+            return cleanedFileName;
+        }
     }
 
     public enum SoundType
     {
-        验票失败,
-        请通行,
+        检票失败,
+        检票成功,
         请看摄像头,
     }
 }
