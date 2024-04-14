@@ -387,8 +387,13 @@ namespace GateClient.ViewModel
                 }
 
                 // 当前票需要人脸验证
-                if (cacheTicket.needFaceVerify == true && !string.IsNullOrEmpty(cacheTicket.picInfo))
+                if (cacheTicket.needFaceVerify == true)
                 {
+                    if (string.IsNullOrEmpty(cacheTicket.picInfo))
+                    {
+                        return new Exception("无人脸比对照片，请补录照片");
+                    }
+
                     Title = "请看摄像头";
                     Sound.PlayAudio(SoundType.请看摄像头);
 
