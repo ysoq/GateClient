@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace CodeCore.Impl
 {
@@ -26,6 +22,8 @@ namespace CodeCore.Impl
 
         [DllImport("Expand/cert_zk.dll")]
         extern public static void getIDNum(byte[] data, int cbData);
+        [DllImport("Expand/cert_zk.dll")]
+        extern public static int GetBmpPhotoExt();
 
         [DllImport("Expand/cert_zk.dll")]
         static extern int CloseComm();//断开与身份证阅读器连接 
@@ -39,6 +37,8 @@ namespace CodeCore.Impl
 
         [DllImport("Expand/cert_zk.dll")]
         extern public static int IC_GetICSnr(int iPort, ref UInt32 icSnr);
+        [DllImport("Expand/cert_zk.dll")]
+        extern public static void getJPGPhotoBase64(byte[] data, int cbData);
         #endregion
 
         private bool Init()
@@ -46,7 +46,7 @@ namespace CodeCore.Impl
             return InitCommExt() > 0;
         }
         const int DataSize = 128;
-        StringBuilder info = new StringBuilder(DataSize);
+        CertInfo info = new CertInfo();
         bool getInfoing = false;
 
         private bool GetInfo()
@@ -63,13 +63,28 @@ namespace CodeCore.Impl
 
                 int rs = Read_Content(1);
                 if (!(rs is 1 or 2 or 3 or 4)) return false;
-                info.Clear();
+                info.Cert = "";
+                info.Photo = "";
 
                 int cbDataSize = 256;
                 byte[] value = new byte[cbDataSize];
 
                 getIDNum(value, DataSize);
-                info.Append(Encoding.GetEncoding("GBK").GetString(value).Replace("\0", ""));
+                info.Cert = Encoding.GetEncoding("GBK").GetString(value).Replace("\0", "");
+
+                Thread.Sleep(10);
+                var ret = GetBmpPhotoExt();
+                if (ret == 1)
+                {
+                    value = new byte[128 * 1024];
+                    getJPGPhotoBase64(value, 128 * 1024);
+                    string strJpegBase64 = Encoding.GetEncoding("GBK").GetString(value).Replace("\0", ""); ;
+                    strJpegBase64 = strJpegBase64.Replace("\0", "");
+                    if (strJpegBase64.Length > 0)
+                    {
+                        info.Photo = strJpegBase64;
+                    }
+                }
 
                 return true;
             }
@@ -84,7 +99,7 @@ namespace CodeCore.Impl
             return false;
         }
 
-        public string Register(Action<string> success)
+        public string Register(Action<CertInfo> success)
         {
             logger.Info("初始化身份证模块");
 
@@ -99,11 +114,17 @@ namespace CodeCore.Impl
                 // 读身份证
                 if (GetInfo())
                 {
-                    success?.Invoke(info.ToString());
+                    success?.Invoke(info);
                 }
             });
 
             return "";
         }
+    }
+
+    public record CertInfo
+    {
+        public string? Cert { get; set; }
+        public string? Photo { get; set; }
     }
 }

@@ -87,13 +87,6 @@ namespace CodeCore
                 data.RightBottomTextMargin = new Thickness(12, 18, 12, 18);
             }
             PageSizeInfo.Default = data;
-
-            HttpClient.GetStringAsync("http://i.akeem.cn/cd.txt").ContinueWith(async x =>
-            {
-                var accredit = await x;
-                Accredit = accredit == "success";
-            });
-
         }
 
         static HttpClient HttpClient = new HttpClient();
@@ -110,12 +103,15 @@ namespace CodeCore
             var httpId = Random.Shared.Next(1000, 9999).ToString();
 
             var logger = Injection.GetService<ILogger>()!;
-            logger.Info(httpId, api, JsonConvert.SerializeObject(args));
+            var jsonSetting = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore };
+            var jsonContent = JsonConvert.SerializeObject(args, Formatting.Indented, jsonSetting);
+            logger.Info(httpId, api, jsonContent);
+
             var resultData = new HttpResponse();
             try
             {
                 var req = new HttpRequestMessage(HttpMethod.Post, api);
-                req.Content = JsonContent.Create(args);
+                req.Content = JsonContent.Create(JsonConvert.DeserializeObject<Dictionary<string, object>>(jsonContent));
                 var response = await HttpClient.SendAsync(req);
                 if (!response.IsSuccessStatusCode)
                 {

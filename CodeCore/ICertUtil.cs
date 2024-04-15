@@ -1,4 +1,6 @@
-﻿namespace CodeCore
+﻿using CodeCore.Impl;
+
+namespace CodeCore
 {
     public interface ICertUtil
     {
@@ -7,6 +9,6 @@
         /// </summary>
         /// <param name="success">扫码成功事件</param>
         /// <param name="error">扫码、设备初始化错误事件</param>
-        string Register(Action<string> success);
+        string Register(Action<CertInfo> success);
     }
 }
