@@ -11,7 +11,6 @@ using GateClient.Dto;
 using Newtonsoft.Json.Linq;
 using CodeCore.ProwayGate;
 using Newtonsoft.Json;
-using System.Reflection.Metadata;
 
 namespace GateClient.ViewModel
 {
@@ -249,16 +248,16 @@ namespace GateClient.ViewModel
         Queue<Action> openGateAgainCheck = new Queue<Action>();
         private async void QrCheck(string content) => await CheckTicket(null, content);
 
-        async void CertCheck(string content) => await CheckTicket(content, null);
+        async void CertCheck(CertInfo content) => await CheckTicket(content, null);
 
 
         /// <summary>
         /// 检票中
         /// </summary>
         bool Checking = false;
-        private async Task CheckTicket(string? idCard, string? qrCode)
+        private async Task CheckTicket(CertInfo? cert, string? qrCode)
         {
-            if (string.IsNullOrEmpty(idCard) && string.IsNullOrEmpty(qrCode))
+            if (string.IsNullOrEmpty(cert?.Cert) && string.IsNullOrEmpty(qrCode))
             {
                 return;
             }
@@ -288,7 +287,7 @@ namespace GateClient.ViewModel
 
                 Checking = true;
 
-                var ex = await VerifyFace(idCard, qrCode);
+                var ex = await VerifyFace(cert, qrCode);
                 if (ex != null)
                 {
                     ChangePage3(ex.Message, "");
@@ -302,7 +301,7 @@ namespace GateClient.ViewModel
                     password = GatePassword,
                     faceVerify = true,
                     qrCode = qrCode,
-                    idcard = idCard
+                    idcard = cert?.Cert
                 };
                 CheckTicket(args);
 
@@ -333,7 +332,7 @@ namespace GateClient.ViewModel
             //}
         }
 
-        async Task<Exception?> VerifyFace(string? idCard, string? qrCode)
+        async Task<Exception?> VerifyFace(CertInfo? idCard, string? qrCode)
         {
             if (GateDb.GateInfo?.isOpenFaceVerify != "1")
             {
@@ -355,7 +354,7 @@ namespace GateClient.ViewModel
                     return new Exception("航班未开启");
                 }
 
-                var cacheTicket = GateDb.Check(idCard, qrCode);
+                var cacheTicket = GateDb.Check(idCard?.Cert, qrCode);
                 // 缓存票未找到，则调用接口获取票信息
                 if (cacheTicket == null)
                 {
@@ -391,6 +390,11 @@ namespace GateClient.ViewModel
                 {
                     if (string.IsNullOrEmpty(cacheTicket.picInfo))
                     {
+                        cacheTicket.picInfo = idCard?.Photo;
+                    }
+
+                    if (string.IsNullOrEmpty(cacheTicket.picInfo))
+                    {
                         return new Exception("无人脸比对照片，请补录照片");
                     }
 
@@ -409,6 +413,7 @@ namespace GateClient.ViewModel
                             return null;
                         }
                     }
+                    return new Exception("人脸识别不一致\r\n请重试或联系工作人员！");
                 }
                 else
                 {
@@ -458,10 +463,29 @@ namespace GateClient.ViewModel
                 if (data?.Value<bool>("isSuccess") == true)
                 {
                     var gateData = data?.Value<JObject>("data");
-                    var kindName = gateData?.Value<string>("nameZhcn") ?? "请通行";
-                    var msg = data?.Value<string>("msg");
+                    var kindName = gateData?.Value<string>("nameZhcn") ?? "有效票";
+                    var useTime = gateData?.Value<string>("useTime");
+
                     OpenGate(1);
-                    ChangePage2(kindName, msg);
+
+                    if (string.IsNullOrEmpty(useTime))
+                    {
+                        Sound.PlayAudio(kindName);
+                        ChangePage2(kindName, null);
+                    }
+                    else
+                    {
+                        if ("0".Equals(useTime))
+                        {
+                            Sound.PlayAudio(kindName + "首次入园");
+                            ChangePage2(kindName, "首次入园");
+                        }
+                        else
+                        {
+                            Sound.PlayAudio(kindName + "二次入园");
+                            ChangePage2(kindName, "二次入园");
+                        }
+                    }
                 }
                 else
                 {
@@ -594,7 +618,6 @@ namespace GateClient.ViewModel
         /// </summary>
         void ChangePage2(string title, string? subtitle)
         {
-            Sound.PlayAudio(SoundType.检票成功, title);
             DispatcherHelper.CheckBeginInvokeOnUI(() =>
             {
                 Title = title;
