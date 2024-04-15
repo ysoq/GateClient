@@ -33,6 +33,8 @@ namespace GateClient
 
             //非UI线程未捕获异常处理事件(例如自己创建的一个子线程)
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
+            Util.Injection.GetService<ILogger>()?.Info("version:", Appsettings.Default?.Version);
         }
 
         private void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)

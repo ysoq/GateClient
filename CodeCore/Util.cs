@@ -103,7 +103,9 @@ namespace CodeCore
             var httpId = Random.Shared.Next(1000, 9999).ToString();
 
             var logger = Injection.GetService<ILogger>()!;
-            var jsonSetting = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore };
+            var jsonSetting = new JsonSerializerSettings {
+                NullValueHandling = NullValueHandling.Ignore ,
+            };
             var jsonContent = JsonConvert.SerializeObject(args, Formatting.Indented, jsonSetting);
             logger.Info(httpId, api, jsonContent);
 

@@ -246,9 +246,17 @@ namespace GateClient.ViewModel
 
 
         Queue<Action> openGateAgainCheck = new Queue<Action>();
-        private async void QrCheck(string content) => await CheckTicket(null, content);
+        private async void QrCheck(string content) {
 
-        async void CertCheck(CertInfo content) => await CheckTicket(content, null);
+            logger?.Info("qr check", content);
+            await CheckTicket(null, content);
+        }
+
+        async void CertCheck(CertInfo content)
+        {
+            logger?.Info("cert check", content.Cert);
+            await CheckTicket(content, null);
+        }
 
 
         /// <summary>
@@ -390,6 +398,7 @@ namespace GateClient.ViewModel
                 {
                     if (string.IsNullOrEmpty(cacheTicket.picInfo))
                     {
+                        logger.Info("use cert face", idCard?.Photo);
                         cacheTicket.picInfo = idCard?.Photo;
                     }
 
@@ -464,27 +473,20 @@ namespace GateClient.ViewModel
                 {
                     var gateData = data?.Value<JObject>("data");
                     var kindName = gateData?.Value<string>("nameZhcn") ?? "有效票";
-                    var useTime = gateData?.Value<string>("useTime");
+                    var useTime = gateData?.Value<int>("useTime");
 
                     OpenGate(1);
 
-                    if (string.IsNullOrEmpty(useTime))
+                    if (useTime == null)
                     {
                         Sound.PlayAudio(kindName);
                         ChangePage2(kindName, null);
                     }
                     else
                     {
-                        if ("0".Equals(useTime))
-                        {
-                            Sound.PlayAudio(kindName + "首次入园");
-                            ChangePage2(kindName, "首次入园");
-                        }
-                        else
-                        {
-                            Sound.PlayAudio(kindName + "二次入园");
-                            ChangePage2(kindName, "二次入园");
-                        }
+                        useTime += 1;
+                        Sound.PlayAudio(kindName + $"{useTime}次入园");
+                        ChangePage2(kindName, $",{useTime}次入园");
                     }
                 }
                 else
