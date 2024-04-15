@@ -473,32 +473,47 @@ namespace GateClient.ViewModel
                 {
                     var gateData = data?.Value<JObject>("data");
                     var kindName = gateData?.Value<string>("nameZhcn") ?? "有效票";
-                    var useTime = gateData?.Value<int>("useTime");
+                    var useTime = gateData?.Value<int?>("useTime");
+                    var lastCheckedTime = gateData?.Value<string>("lastCheckedTime");
 
                     OpenGate(1);
+                    if (!string.IsNullOrEmpty(lastCheckedTime))
+                    {
+                        lastCheckedTime = $"上次检票时间：{lastCheckedTime}";
+                    }
 
                     if (useTime == null)
                     {
                         Sound.PlayAudio(kindName);
-                        ChangePage2(kindName, null);
+                        ChangePage2(kindName, lastCheckedTime);
                     }
                     else
                     {
                         useTime += 1;
                         Sound.PlayAudio(kindName + $"{useTime}次入园");
-                        ChangePage2(kindName, $",{useTime}次入园");
+                        if (!string.IsNullOrEmpty(lastCheckedTime))
+                        {
+                            lastCheckedTime = "，" + lastCheckedTime;
+                        }
+                        ChangePage2(kindName, $"{useTime}次入园{lastCheckedTime}");
                     }
                 }
                 else
                 {
                     var msg = data?.Value<string>("msg");
+                    var lastCheckedTime = data?.Value<JObject>("data")?.Value<string>("lastCheckedTime");
+                    if (!string.IsNullOrEmpty(lastCheckedTime))
+                    {
+                        lastCheckedTime = $"上次检票时间：{lastCheckedTime}";
+                    }
+                    
                     if (string.IsNullOrEmpty(msg) || msg?.Length > 8)
                     {
                         ChangePage3("验票失败", msg);
                     }
                     else
                     {
-                        ChangePage3(msg!, null);
+                        ChangePage3(msg!, lastCheckedTime);
                     }
                 }
             }

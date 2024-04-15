@@ -5,9 +5,10 @@
 		<TargetFramework>net6.0-windows</TargetFramework>
 		<Nullable>enable</Nullable>
 		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-		<AssemblyVersion>1.05</AssemblyVersion>
-		<FileVersion>1.05</FileVersion>
+		<AssemblyVersion>1.08</AssemblyVersion>
+		<FileVersion>1.08</FileVersion>
 		<UseWPF>true</UseWPF>
+		<ApplicationIcon>favicon.ico</ApplicationIcon>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -38,6 +39,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Content Include="favicon.ico" />
 	  <Content Include="sound\请看摄像头.wav">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </Content>
