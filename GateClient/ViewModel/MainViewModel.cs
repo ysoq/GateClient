@@ -11,6 +11,7 @@ using GateClient.Dto;
 using Newtonsoft.Json.Linq;
 using CodeCore.ProwayGate;
 using Newtonsoft.Json;
+using System.Windows.Markup;
 
 namespace GateClient.ViewModel
 {
@@ -246,7 +247,8 @@ namespace GateClient.ViewModel
 
 
         Queue<Action> openGateAgainCheck = new Queue<Action>();
-        private async void QrCheck(string content) {
+        private async void QrCheck(string content)
+        {
 
             logger?.Info("qr check", content);
             await CheckTicket(null, content);
@@ -298,7 +300,14 @@ namespace GateClient.ViewModel
                 var ex = await VerifyFace(cert, qrCode);
                 if (ex != null)
                 {
-                    ChangePage3(ex.Message, "");
+                    if (ex.Message.Length > 10)
+                    {
+                        ChangePage3("验票失败", ex.Message);
+                    }
+                    else
+                    {
+                        ChangePage3(ex.Message, "");
+                    }
                     return;
                 }
 
@@ -371,7 +380,7 @@ namespace GateClient.ViewModel
                         code = GateCode,
                         password = GatePassword,
                         flightCode = firstTask?.flightCode,
-                        idcard = idCard,
+                        idcard = idCard?.Cert,
                         qrCode = qrCode,
                     });
                     if (response.Success)
@@ -386,6 +395,10 @@ namespace GateClient.ViewModel
                             return new Exception(data?.Value<string>("msg") ?? "验票失败");
                         }
                     }
+                    else
+                    {
+                        return response.Error ?? new Exception("验票失败");
+                    }
                 }
 
                 if (cacheTicket == null)
@@ -398,7 +411,7 @@ namespace GateClient.ViewModel
                 {
                     if (string.IsNullOrEmpty(cacheTicket.picInfo))
                     {
-                        logger.Info("use cert face", idCard?.Photo);
+                        logger.Info("use cert face");
                         cacheTicket.picInfo = idCard?.Photo;
                     }
 
@@ -506,7 +519,7 @@ namespace GateClient.ViewModel
                     {
                         lastCheckedTime = $"上次检票时间：{lastCheckedTime}";
                     }
-                    
+
                     if (string.IsNullOrEmpty(msg) || msg?.Length > 8)
                     {
                         ChangePage3("验票失败", msg);
@@ -519,7 +532,7 @@ namespace GateClient.ViewModel
             }
             else
             {
-                ChangePage3("验票失败", "网络出现错误");
+                ChangePage3("验票失败", response.Error?.Message);
             }
         }
 

@@ -117,9 +117,22 @@ namespace CodeCore
                 var response = await HttpClient.SendAsync(req);
                 if (!response.IsSuccessStatusCode)
                 {
-                    resultData.Success = false;
-                    resultData.Error = new Exception("网络请求错误，日志代码：" + httpId);
                     logger.Error(httpId, "网络请求错误，错误代码：", response.StatusCode.ToString());
+
+                    if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    {
+                        resultData.JsonData = await response.Content.ReadAsStringAsync();
+                        var jsonData = resultData.GetData<JObject>();
+                        var msg = jsonData?.Value<string>("msg") ?? "网络请求错误";
+                        resultData.Success = false;
+                        resultData.Error = new Exception(msg);
+                    }
+                    else
+                    {
+                        resultData.Success = false;
+                        resultData.Error = new Exception("网络请求错误，日志代码：" + httpId);
+                    }
+
                     return resultData;
                 }
 
