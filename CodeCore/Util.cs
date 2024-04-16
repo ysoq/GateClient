@@ -3,6 +3,7 @@ using CodeCore.ProwayGate;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Net;
 using System.Net.Http.Json;
 using System.Windows;
 using System.Windows.Media;
@@ -32,6 +33,16 @@ namespace CodeCore
 
         public static void RegisterCodeCore(this ServiceCollection services)
         {
+            var handler = new HttpClientHandler()
+            {
+                AutomaticDecompression = DecompressionMethods.GZip,
+                AllowAutoRedirect = true,
+                UseCookies = true,
+                ClientCertificateOptions = ClientCertificateOption.Manual,
+                ServerCertificateCustomValidationCallback = (a, b, c, d) => true
+            };
+            HttpClient = new HttpClient(handler);
+
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             var jsonContent = File.ReadAllText("appsettings.json");
 
@@ -89,7 +100,7 @@ namespace CodeCore
             PageSizeInfo.Default = data;
         }
 
-        static HttpClient HttpClient = new HttpClient();
+        static HttpClient HttpClient = null;
         public static async Task<HttpResponse> UseHttpJson(string api, object args)
         {
             if (!Accredit)
@@ -103,8 +114,9 @@ namespace CodeCore
             var httpId = Random.Shared.Next(1000, 9999).ToString();
 
             var logger = Injection.GetService<ILogger>()!;
-            var jsonSetting = new JsonSerializerSettings {
-                NullValueHandling = NullValueHandling.Ignore ,
+            var jsonSetting = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
             };
             var jsonContent = JsonConvert.SerializeObject(args, Formatting.Indented, jsonSetting);
             logger.Info(httpId, api, jsonContent);
@@ -126,6 +138,7 @@ namespace CodeCore
                         var msg = jsonData?.Value<string>("msg") ?? "网络请求错误";
                         resultData.Success = false;
                         resultData.Error = new Exception(msg);
+                        logger.Error(httpId, resultData.JsonData);
                     }
                     else
                     {
