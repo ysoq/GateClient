@@ -122,5 +122,18 @@ namespace GateClient
                 control.icon.BeginAnimation(MarginProperty, null);
             }
         }
+
+
+        public string ErrorMsg
+        {
+            get { return (string)GetValue(ErrorMsgProperty); }
+            set { SetValue(ErrorMsgProperty, value); }
+        }
+
+        // Using a DependencyProperty as the backing store for ErrorMsg.  This enables animation, styling, binding, etc...
+        public static readonly DependencyProperty ErrorMsgProperty =
+            DependencyProperty.Register("ErrorMsg", typeof(string), typeof(PageControl), new PropertyMetadata(""));
+
+
     }
 }

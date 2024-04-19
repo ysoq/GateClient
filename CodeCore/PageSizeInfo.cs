@@ -13,6 +13,7 @@ namespace CodeCore
         public static PageSizeInfo? Default { get; set; }
 
         public double LeftTopTextFontSize { get; set; } = 40;
+        public double ErrorMsgFontSize { get; set; } = 30;
         public Thickness LeftTopTextMargin { get; set; } = new Thickness(74, 68, 74, 68);
         public double RightBottomTextFontSize { get; set; } = 40;
         public Thickness RightBottomTextMargin { get; set; } = new Thickness(30, 53, 30, 53);

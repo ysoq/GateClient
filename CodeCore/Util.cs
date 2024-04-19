@@ -91,11 +91,12 @@ namespace CodeCore
                 data.BorderWidth = 283;
                 data.IconWidth = 180;
                 data.StatusNameFontSize = 60;
-                data.StatusNameMargin = new Thickness(0, 107, 0, 0);
-                data.LeftTopTextFontSize = 24;
-                data.LeftTopTextMargin = new Thickness(12, 18, 12, 18);
-                data.RightBottomTextFontSize = 24;
-                data.RightBottomTextMargin = new Thickness(12, 18, 12, 18);
+                data.StatusNameMargin = new Thickness(0, 80, 0, 0);
+                data.LeftTopTextFontSize = 18;
+                data.LeftTopTextMargin = new Thickness(10);
+                data.RightBottomTextFontSize = 18;
+                data.RightBottomTextMargin = new Thickness(10);
+                data.ErrorMsgFontSize = 30;
             }
             PageSizeInfo.Default = data;
         }

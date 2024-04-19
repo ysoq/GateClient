@@ -28,6 +28,9 @@ namespace GateClient.ViewModel
         private string? rightBottomText;
 
         [ObservableProperty]
+        private string? errorMsg;
+
+        [ObservableProperty]
         private Color? startBg;
 
         [ObservableProperty]
@@ -300,14 +303,7 @@ namespace GateClient.ViewModel
                 var ex = await VerifyFace(cert, qrCode);
                 if (ex != null)
                 {
-                    if (ex.Message.Length > 10)
-                    {
-                        ChangePage3("验票失败", ex.Message);
-                    }
-                    else
-                    {
-                        ChangePage3(ex.Message, "");
-                    }
+                    ChangePage3("验票失败", ex.Message);
                     return;
                 }
 
@@ -435,7 +431,7 @@ namespace GateClient.ViewModel
                             return null;
                         }
                     }
-                    return new Exception("人脸识别不一致\r\n请重试或联系工作人员！");
+                    return new Exception("人脸识别不一致，请重试或联系工作人员！");
                 }
                 else
                 {
@@ -633,6 +629,7 @@ namespace GateClient.ViewModel
             DispatcherHelper.CheckBeginInvokeOnUI(() =>
             {
                 Title = "请检票";
+                ErrorMsg = "";
                 IconRunning = false;
                 CurrPageCode = PageCode.WaitCheck;
                 ChangeLeftTopText();
@@ -651,8 +648,9 @@ namespace GateClient.ViewModel
             DispatcherHelper.CheckBeginInvokeOnUI(() =>
             {
                 Title = title;
+                ErrorMsg = subtitle;
                 IconRunning = true;
-                LeftTopText = subtitle;
+                LeftTopText = "";
                 CurrPageCode = PageCode.Success;
                 StartBg = Util.ToColor("#E3F2ED");
                 EndBg = Util.ToColor("#7ADDAE");
@@ -672,9 +670,10 @@ namespace GateClient.ViewModel
             DispatcherHelper.CheckBeginInvokeOnUI(() =>
             {
                 Title = title;
+                ErrorMsg = subtitle;
                 IconRunning = false;
                 CurrPageCode = PageCode.CheckFail;
-                LeftTopText = subtitle;
+                LeftTopText = "";
                 StartBg = Util.ToColor("#F9D3DD");
                 EndBg = Util.ToColor("#E54E63");
                 ThemeBg = Util.ToBrush("#D9001B");
@@ -699,6 +698,7 @@ namespace GateClient.ViewModel
             DispatcherHelper.CheckBeginInvokeOnUI(() =>
             {
                 Title = "网络异常";
+                ErrorMsg = "";
                 IconRunning = false;
                 CurrPageCode = PageCode.NetworkError;
                 LeftTopText = "";

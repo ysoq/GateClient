@@ -22,7 +22,7 @@
         <TextBlock
             Margin="{Binding Path=LeftTopTextMargin, Source={x:Static core:PageSizeInfo.Default}}"
             HorizontalAlignment="Left"
-            VerticalAlignment="Top"
+            VerticalAlignment="Bottom"
             FontSize="{Binding Path=LeftTopTextFontSize, Source={x:Static core:PageSizeInfo.Default}}"
             Foreground="#fff"
             Style="{StaticResource alimama}"
@@ -31,20 +31,29 @@
             Margin="{Binding Path=RightBottomTextMargin, Source={x:Static core:PageSizeInfo.Default}}"
             HorizontalAlignment="Right"
             VerticalAlignment="Bottom"
-            FontSize="24"
+            FontSize="{Binding Path=RightBottomTextFontSize, Source={x:Static core:PageSizeInfo.Default}}"
             FontWeight="Regular"
             Foreground="#fff"
             Style="{StaticResource alimama}"
             Text="{Binding Path=RightBottomText, ElementName=uc}" />
-        <TextBlock
-            Margin="{Binding Path=StatusNameMargin, Source={x:Static core:PageSizeInfo.Default}}"
+        <StackPanel
+            Margin="0,80,0,0"
             HorizontalAlignment="Center"
             VerticalAlignment="Top"
-            FontSize="{Binding Path=StatusNameFontSize, Source={x:Static core:PageSizeInfo.Default}}"
-            FontWeight="Bold"
-            Foreground="{Binding ElementName=uc, Path=ThemeBg}"
-            Style="{StaticResource alimama}"
-            Text="{Binding Path=StatusName, ElementName=uc}" />
+            Orientation="Vertical">
+            <TextBlock
+                HorizontalAlignment="Center"
+                FontSize="{Binding Path=StatusNameFontSize, Source={x:Static core:PageSizeInfo.Default}}"
+                FontWeight="Bold"
+                Foreground="{Binding ElementName=uc, Path=ThemeBg}"
+                Style="{StaticResource alimama}"
+                Text="{Binding Path=StatusName, ElementName=uc}" />
+            <TextBlock
+                FontSize="{Binding Path=ErrorMsgFontSize, Source={x:Static core:PageSizeInfo.Default}}"
+                Foreground="#fff"
+                Text="{Binding Path=ErrorMsg, ElementName=uc}" />
+        </StackPanel>
+
         <Border
             x:Name="border"
             Width="{Binding Path=BorderWidth, Source={x:Static core:PageSizeInfo.Default}}"

@@ -26,6 +26,7 @@
             StartBg="{Binding StartBg}"
             StatusName="{Binding Title}"
             ThemeBg="{Binding ThemeBg}"
+            ErrorMsg="{Binding ErrorMsg}"
             ThemeIcon="{Binding ThemeIcon}" />
         <!--</ScrollViewer>-->
 
