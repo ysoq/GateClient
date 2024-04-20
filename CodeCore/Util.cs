@@ -108,7 +108,7 @@ namespace CodeCore
             {
                 return new HttpResponse()
                 {
-                    Success = false,
+                    RequestSuccess = false,
                     Error = new Exception("授权失败"),
                 };
             }
@@ -137,26 +137,26 @@ namespace CodeCore
                         resultData.JsonData = await response.Content.ReadAsStringAsync();
                         var jsonData = resultData.GetData<JObject>();
                         var msg = jsonData?.Value<string>("msg") ?? "网络请求错误";
-                        resultData.Success = false;
+                        resultData.RequestSuccess = false;
                         resultData.Error = new Exception(msg);
                         logger.Error(httpId, resultData.JsonData);
                     }
                     else
                     {
-                        resultData.Success = false;
+                        resultData.RequestSuccess = false;
                         resultData.Error = new Exception("网络请求错误，日志代码：" + httpId);
                     }
 
                     return resultData;
                 }
 
-                resultData.Success = true;
+                resultData.RequestSuccess = true;
                 resultData.JsonData = await response.Content.ReadAsStringAsync();
                 logger.Info(httpId, resultData.JsonData);
             }
             catch (Exception ex)
             {
-                resultData.Success = false;
+                resultData.RequestSuccess = false;
                 resultData.Error = new Exception("网络请求错误，日志代码：" + httpId);
                 logger.Error(ex, httpId);
             }

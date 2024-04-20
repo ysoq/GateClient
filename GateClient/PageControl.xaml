@@ -69,7 +69,7 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Data="{Binding ElementName=uc, Path=ThemeIcon}"
-                Fill="#FFFFFF"
+                Fill="{Binding ElementName=uc, Path=IconColor}"
                 Stretch="Uniform" />
         </Border>
     </Grid>

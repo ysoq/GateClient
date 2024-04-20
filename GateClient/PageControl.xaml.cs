@@ -135,5 +135,19 @@ namespace GateClient
             DependencyProperty.Register("ErrorMsg", typeof(string), typeof(PageControl), new PropertyMetadata(""));
 
 
+
+
+
+        public Brush IconColor
+        {
+            get { return (Brush)GetValue(IconColorProperty); }
+            set { SetValue(IconColorProperty, value); }
+        }
+
+        // Using a DependencyProperty as the backing store for IconColor.  This enables animation, styling, binding, etc...
+        public static readonly DependencyProperty IconColorProperty =
+            DependencyProperty.Register("IconColor", typeof(Brush), typeof(PageControl), new PropertyMetadata(Util.ToBrush("#ffffff")));
+
+
     }
 }

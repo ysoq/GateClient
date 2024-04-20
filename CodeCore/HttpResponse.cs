@@ -4,7 +4,7 @@ namespace CodeCore
 {
     public class HttpResponse
     {
-        public bool Success { get; set; }
+        public bool RequestSuccess { get; set; }
         public string? JsonData { get; set; }
         public Exception? Error { get; set; }
 

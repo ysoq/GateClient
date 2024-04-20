@@ -20,13 +20,14 @@
         -->
         <local:PageControl
             EndBg="{Binding EndBg}"
+            ErrorMsg="{Binding ErrorMsg}"
+            IconColor="{Binding IconColor}"
             IconRunning="{Binding IconRunning}"
             LeftTopText="{Binding LeftTopText}"
             RightBottomText="{Binding RightBottomText}"
             StartBg="{Binding StartBg}"
             StatusName="{Binding Title}"
             ThemeBg="{Binding ThemeBg}"
-            ErrorMsg="{Binding ErrorMsg}"
             ThemeIcon="{Binding ThemeIcon}" />
         <!--</ScrollViewer>-->
 
