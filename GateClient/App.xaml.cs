@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -64,6 +65,32 @@ namespace GateClient
                 log?.Error((System.Exception)e.ExceptionObject, "程序运行出错2");
             }
             Thread.Sleep(1000);
+            Restart();
+        }
+
+        /// <summary>
+        /// 重启程序
+        /// </summary>
+        public static void Restart()
+        {
+            var log = Util.Injection.GetService<ILogger>();
+
+            log?.Info("重启程序");
+            Task.Delay(300).ContinueWith((a) =>
+            {
+                string bat = Environment.CurrentDirectory + @"\restart.bat";
+                if (!File.Exists(bat))
+                {
+                    File.WriteAllText(bat, @"
+taskkill /f /im GateClient.exe
+ping /n 3 127.0.0.1 >nul
+ping /n 3 127.0.0.1 >nul
+start GateClient.exe
+                    ");
+                }
+
+                System.Diagnostics.Process.Start(bat);
+            });
         }
 
         private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

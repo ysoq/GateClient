@@ -48,7 +48,8 @@ namespace GateClient.ViewModel
         [ObservableProperty]
         private Geometry? themeIcon;
 
-        const string ExigencyValue = "gate:exigency";
+        const string GateExigencyCode = "gate:exigency";
+        const string GateRebootCode = "gate:reboot";
         // 消防模式
         private bool ExigencyMode = false;
 
@@ -274,7 +275,6 @@ namespace GateClient.ViewModel
         Queue<Action> openGateAgainCheck = new Queue<Action>();
         private async void QrCheck(string content)
         {
-
             logger?.Info("qr check", content);
             await CheckTicket(null, content);
         }
@@ -296,8 +296,9 @@ namespace GateClient.ViewModel
             {
                 return;
             }
+
             // 消防模式
-            if (ExigencyValue.Equals(qrCode))
+            if (GateExigencyCode.Equals(qrCode))
             {
                 ChangePage1();
 
@@ -310,6 +311,11 @@ namespace GateClient.ViewModel
                 {
                     gateUtil.SetIntimes(0);
                 }
+                return;
+            }
+            else if (GateRebootCode.Equals(qrCode))
+            {
+                App.Restart();
                 return;
             }
 
@@ -706,7 +712,7 @@ namespace GateClient.ViewModel
             });
 
             await Quartzer.Remove(nameof(ChangePage3));
-            Quartzer.Once(this, nameof(ChangePage3), 3, () =>
+            Quartzer.Once(this, nameof(ChangePage3), 6, () =>
             {
                 if (CurrPageCode == PageCode.CheckFail)
                 {

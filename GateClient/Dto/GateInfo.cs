@@ -48,14 +48,14 @@ namespace GateClient.Dto
 
         public TicketInfo? Check(string? idCard, string? qrCode)
         {
-            if (!string.IsNullOrEmpty(idCard))
-            {
-                return TicketInfos?.Find(x => x.idcard == idCard);
-            }
-            else if (!string.IsNullOrEmpty(qrCode))
-            {
-                return TicketInfos?.Find(x => x.qrCode == qrCode);
-            }
+            //if (!string.IsNullOrEmpty(idCard))
+            //{
+            //    return TicketInfos?.Find(x => x.idcard == idCard);
+            //}
+            //else if (!string.IsNullOrEmpty(qrCode))
+            //{
+            //    return TicketInfos?.Find(x => x.qrCode == qrCode);
+            //}
 
             return null;
         }
