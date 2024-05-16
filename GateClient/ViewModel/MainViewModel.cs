@@ -173,7 +173,7 @@ namespace GateClient.ViewModel
 
         private GateDb GateDb { get; } = new GateDb();
 
-        // 更新闸机信息，触发间隔一分钟
+        // 更新闸机信息，触发间隔五秒钟
         private void GetGateInfo()
         {
             var api = appsettings.Node("api")!.Value<string>("getGateInfo")!;
@@ -183,12 +183,12 @@ namespace GateClient.ViewModel
                 password = GatePassword,
             };
 
-            Quartzer.CreateJob(this, nameof(GetGateInfo), 60, true, async () =>
+            Quartzer.CreateJob(this, nameof(GetGateInfo), 5, true, async () =>
             {
                 Quartzer.Lock(nameof(GetGateInfo));
                 try
                 {
-                    var response = await Util.UseHttpJson(api, args);
+                    var response = await Util.UseHttpJson(api, args, false);
                     if (!Util.Accredit)
                     {
                         Title = "授权失败";
@@ -208,7 +208,6 @@ namespace GateClient.ViewModel
                         {
                             InitPageEnd();
                         }
-                        await LoadCacheTicket();
                         ChangeLeftTopText();
                     }
                     else if (CurrPageCode == PageCode.Init)
@@ -236,36 +235,6 @@ namespace GateClient.ViewModel
                     Quartzer.Unlock(nameof(GetGateInfo));
                 }
             });
-        }
-
-        // 加载缓存票
-        private async Task LoadCacheTicket()
-        {
-            var currFlightCode = GateDb.GetCurrentTask()?.flightCode;
-            if (string.IsNullOrEmpty(currFlightCode))
-            {
-                GateDb.SetTicketInfo(currFlightCode, null);
-                return;
-            }
-            if (currFlightCode == GateDb.TicketInfoByFlightCode)
-            {
-                return;
-            }
-
-            var response = await Util.UseHttpJson(appsettings.Node("api")!.Value<string>("getFightAllTicketInfo")!, new
-            {
-                code = GateCode,
-                password = GatePassword,
-                flightCode = currFlightCode,
-            });
-            if (response.RequestSuccess)
-            {
-                var data = response.GetData<JObject>();
-                if (data?.Value<bool>("isSuccess") == true)
-                {
-                    GateDb.SetTicketInfo(currFlightCode, data.Value<JArray>("data")?.ToObject<List<TicketInfo>>());
-                }
-            }
         }
         #endregion
 
@@ -296,6 +265,12 @@ namespace GateClient.ViewModel
             {
                 return;
             }
+            string verifyTicketCode = string.IsNullOrEmpty(cert?.Cert) ? qrCode! : cert.Cert!;
+
+            if (!DeviceLock.Security(verifyTicketCode))
+            {
+                return;
+            }
 
             // 消防模式
             if (GateExigencyCode.Equals(qrCode))
@@ -319,13 +294,14 @@ namespace GateClient.ViewModel
                 return;
             }
 
-            if (Checking || (CurrPageCode == PageCode.Success && !ExigencyMode))
+            if (Checking)
             {
                 return;
             }
             try
             {
-
+                // 刷票信息埋点
+                DeviceLock.RecordPoint(DeviceLock.Point.NetworkRequest, verifyTicketCode);
                 Checking = true;
 
                 var ex = await VerifyFace(cert, qrCode);
@@ -354,6 +330,8 @@ namespace GateClient.ViewModel
             finally
             {
                 Checking = false;
+                // 刷票信息埋点
+                DeviceLock.RecordPoint(DeviceLock.Point.NetworkResponse, verifyTicketCode);
             }
         }
 
@@ -394,10 +372,7 @@ namespace GateClient.ViewModel
                 {
                     return new Exception("班次未开启");
                 }
-
-                var cacheTicket = GateDb.Check(idCard?.Cert, qrCode);
-                // 缓存票未找到，则调用接口获取票信息
-                if (cacheTicket == null)
+                TicketInfo? cacheTicket = null;
                 {
                     var response = await Util.UseHttpJson(getFaceVerifyInfo, new
                     {
@@ -538,11 +513,6 @@ namespace GateClient.ViewModel
                 else
                 {
                     var msg = data?.Value<string>("msg");
-                    var lastCheckedTime = data?.Value<JObject>("data")?.Value<string>("lastCheckedTime");
-                    if (!string.IsNullOrEmpty(lastCheckedTime))
-                    {
-                        lastCheckedTime = $"上次检票时间：{lastCheckedTime}";
-                    }
 
                     if (string.IsNullOrEmpty(msg) || msg?.Length > 8)
                     {
@@ -550,6 +520,11 @@ namespace GateClient.ViewModel
                     }
                     else
                     {
+                        var lastCheckedTime = data?.Value<JObject>("data")?.Value<string>("lastCheckedTime");
+                        if (!string.IsNullOrEmpty(lastCheckedTime))
+                        {
+                            lastCheckedTime = $"上次检票时间：{lastCheckedTime}";
+                        }
                         ChangePage3(msg!, lastCheckedTime);
                     }
                 }

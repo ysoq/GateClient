@@ -102,7 +102,7 @@ namespace CodeCore
         }
 
         static HttpClient HttpClient = null;
-        public static async Task<HttpResponse> UseHttpJson(string api, object args)
+        public static async Task<HttpResponse> UseHttpJson(string api, object args, bool writeLog = true)
         {
             if (!Accredit)
             {
@@ -120,7 +120,7 @@ namespace CodeCore
                 NullValueHandling = NullValueHandling.Ignore,
             };
             var jsonContent = JsonConvert.SerializeObject(args, Formatting.Indented, jsonSetting);
-            logger.Info(httpId, api, jsonContent);
+            logger.IfInfo(writeLog, httpId, api, jsonContent);
 
             var resultData = new HttpResponse();
             try
@@ -152,7 +152,7 @@ namespace CodeCore
 
                 resultData.RequestSuccess = true;
                 resultData.JsonData = await response.Content.ReadAsStringAsync();
-                logger.Info(httpId, resultData.JsonData);
+                logger.IfInfo(writeLog, httpId, resultData.JsonData);
             }
             catch (Exception ex)
             {

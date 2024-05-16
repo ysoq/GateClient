@@ -35,31 +35,6 @@ namespace GateClient.Dto
             GateinTask = data?.GateinTask;
         }
 
-        public string? TicketInfoByFlightCode { get; set; }
-
-        public List<TicketInfo>? TicketInfos { get; private set; }
-
-        public void SetTicketInfo(string? flightCode, List<TicketInfo>? list)
-        {
-            TicketInfoByFlightCode = flightCode;
-            TicketInfos = list;
-        }
-
-
-        public TicketInfo? Check(string? idCard, string? qrCode)
-        {
-            //if (!string.IsNullOrEmpty(idCard))
-            //{
-            //    return TicketInfos?.Find(x => x.idcard == idCard);
-            //}
-            //else if (!string.IsNullOrEmpty(qrCode))
-            //{
-            //    return TicketInfos?.Find(x => x.qrCode == qrCode);
-            //}
-
-            return null;
-        }
-
         /// <summary>
         /// 获取当前航班任务
         /// </summary>
