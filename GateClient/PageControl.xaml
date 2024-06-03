@@ -49,6 +49,7 @@
                 Style="{StaticResource alimama}"
                 Text="{Binding Path=StatusName, ElementName=uc}" />
             <TextBlock
+                HorizontalAlignment="Center"
                 FontSize="{Binding Path=ErrorMsgFontSize, Source={x:Static core:PageSizeInfo.Default}}"
                 Foreground="#fff"
                 Text="{Binding Path=ErrorMsg, ElementName=uc}" />

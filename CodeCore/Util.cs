@@ -119,7 +119,8 @@ namespace CodeCore
             {
                 NullValueHandling = NullValueHandling.Ignore,
             };
-            var jsonContent = JsonConvert.SerializeObject(args, Formatting.Indented, jsonSetting);
+            var jsonContent = JsonConvert.SerializeObject(args, Formatting.None, jsonSetting);
+            var startTime = DateTime.Now;
             logger.IfInfo(writeLog, httpId, api, jsonContent);
 
             var resultData = new HttpResponse();
@@ -153,6 +154,12 @@ namespace CodeCore
                 resultData.RequestSuccess = true;
                 resultData.JsonData = await response.Content.ReadAsStringAsync();
                 logger.IfInfo(writeLog, httpId, resultData.JsonData);
+                var logUseTime = DateTime.Now - startTime;
+                if (!writeLog && logUseTime.TotalSeconds > 2)
+                {
+                    logger.Info(httpId, api, jsonContent, resultData.JsonData?.Replace("\t", "")?.Replace("\n", ""));
+                }
+                logger.IfInfo(logUseTime.TotalSeconds > 2, httpId, $"耗时{logUseTime.TotalSeconds}s");
             }
             catch (Exception ex)
             {
