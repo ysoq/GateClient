@@ -153,11 +153,12 @@ namespace CodeCore
 
                 resultData.RequestSuccess = true;
                 resultData.JsonData = await response.Content.ReadAsStringAsync();
-                logger.IfInfo(writeLog, httpId, resultData.JsonData);
+                var responseJson = resultData.JsonData?.Replace("\t", "")?.Replace("\n", "");
+                logger.IfInfo(writeLog, httpId, responseJson);
                 var logUseTime = DateTime.Now - startTime;
                 if (!writeLog && logUseTime.TotalSeconds > 2)
                 {
-                    logger.Info(httpId, api, jsonContent, resultData.JsonData?.Replace("\t", "")?.Replace("\n", ""));
+                    logger.Info(httpId, api, jsonContent, responseJson);
                 }
                 logger.IfInfo(logUseTime.TotalSeconds > 2, httpId, $"耗时{logUseTime.TotalSeconds}s");
             }
