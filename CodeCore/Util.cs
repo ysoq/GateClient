@@ -120,7 +120,6 @@ namespace CodeCore
                 NullValueHandling = NullValueHandling.Ignore,
             };
             var jsonContent = JsonConvert.SerializeObject(args, Formatting.None, jsonSetting);
-            var startTime = DateTime.Now;
             logger.IfInfo(writeLog, httpId, api, jsonContent);
 
             var resultData = new HttpResponse();
@@ -128,7 +127,10 @@ namespace CodeCore
             {
                 var req = new HttpRequestMessage(HttpMethod.Post, api);
                 req.Content = JsonContent.Create(JsonConvert.DeserializeObject<Dictionary<string, object>>(jsonContent));
+                var startTime = DateTime.Now;
                 var response = await HttpClient.SendAsync(req);
+                var logUseTime = DateTime.Now - startTime;
+
                 if (!response.IsSuccessStatusCode)
                 {
                     logger.Error(httpId, "网络请求错误，错误代码：", response.StatusCode.ToString());
@@ -153,9 +155,9 @@ namespace CodeCore
 
                 resultData.RequestSuccess = true;
                 resultData.JsonData = await response.Content.ReadAsStringAsync();
+
                 var responseJson = resultData.JsonData?.Replace("\t", "")?.Replace("\n", "");
                 logger.IfInfo(writeLog, httpId, responseJson);
-                var logUseTime = DateTime.Now - startTime;
                 if (!writeLog && logUseTime.TotalSeconds > 2)
                 {
                     logger.Info(httpId, api, jsonContent, responseJson);

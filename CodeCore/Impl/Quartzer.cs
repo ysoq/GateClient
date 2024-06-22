@@ -1,157 +1,84 @@
-﻿using Quartz.Impl;
-using Quartz;
+﻿
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeCore.Impl
 {
-    public class Quartzer : IJob
+    public class TaskDispatch
     {
-        public static Dictionary<string, Action> ActionList { get; } = new();
-        public static Dictionary<string, bool> LockData { get; } = new();
-        public static Dictionary<object, List<string>> OwnerKey { get; } = new();
+        private static Dictionary<string, System.Timers.Timer> TimerList { get; } = new();
+        private static Dictionary<string, DelayedExecution> OnceList { get; } = new();
+        private static Dictionary<string, bool> LockData { get; } = new();
 
-        public Task Execute(IJobExecutionContext context)
+        public static void CreateJob(string token, double seconds, Action action)
         {
-            return Task.Run(() =>
+            if (TimerList.ContainsKey(token))
             {
-                try
-                {
-                    JobDataMap dataMap = context.JobDetail.JobDataMap;
-                    string token = dataMap.GetString("token")!;
-
-                    if (LockData.TryGetValue(token, out bool isLock) && isLock)
-                    {
-                        return;
-                    }
-
-                    if (ActionList.TryGetValue(token, out Action? action))
-                    {
-                        action?.Invoke();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    var logger = Util.Injection.GetService<ILogger>();
-                    logger?.Error(ex);
-                }
-            });
-        }
-
-
-        public static void CreateJob(object owner, string token, ITrigger trigger, Action action)
-        {
-            try
-            {
-                lock (ActionList)
-                {
-                    if (!OwnerKey.ContainsKey(owner))
-                    {
-                        OwnerKey[owner] = new List<string>();
-                    }
-                    OwnerKey[owner].Add(token);
-
-                    if (ActionList.ContainsKey(token))
-                    {
-                        Remove(token);
-                    }
-                    var scheduler = StdSchedulerFactory.GetDefaultScheduler().Result;
-                    if (!scheduler.IsStarted)
-                    {
-                        scheduler.Start().Wait();
-                    }
-                    ActionList.Add(token, action);
-                    IJobDetail job = JobBuilder.Create<CodeCore.Impl.Quartzer>()
-                                     .WithIdentity(new JobKey(token)) // name "myJob", group "group1"
-                                     .UsingJobData("token", token)
-                                     .Build();
-
-                    scheduler.ScheduleJob(job, trigger).Wait();      //把作业，触发器加入调度器。
-                }
+                return;
             }
-            catch (Exception ex)
+            lock (TimerList)
             {
-                var logger = Util.Injection.GetService<ILogger>();
-                logger?.Error(ex);
-            }
-        }
-
-        public static void CreateJob(object owner, string token, double seconds, bool startNow, Action action)
-        {
-            // 创建触发器
-            TriggerBuilder triggerBuilder = TriggerBuilder.Create();
-
-            if (!startNow)
-            {
-                triggerBuilder.StartAt(SystemTime.UtcNow().AddSeconds(seconds));
-            }
-
-            var trigger = triggerBuilder.WithSimpleSchedule(x => x
-                              .WithInterval(TimeSpan.FromMilliseconds(seconds * 1000))
-                              .RepeatForever())
-                              .Build();
-
-            CreateJob(owner, token, trigger, action);
-        }
-
-        public static void CreateJob(object owner, string token, double seconds, Action action)
-        {
-            CreateJob(owner, token, seconds, true, action);
-        }
-
-        public static void Once(object owner, string token, double seconds, Action action)
-        {
-            // 创建触发器
-            TriggerBuilder triggerBuilder = TriggerBuilder.Create().StartAt(SystemTime.UtcNow().AddSeconds(seconds));
-
-            var trigger = triggerBuilder.WithSimpleSchedule(x => 
-                                                            x.WithInterval(TimeSpan.FromMilliseconds(seconds * 1000))
-                                                             .WithRepeatCount(0)
-                                                            )
-                              .Build();
-
-            CreateJob(owner, token, trigger, action);
-        }
-
-        public static async Task Remove(string key)
-        {
-            try
-            {
-                if (ActionList.ContainsKey(key))
+                var timer = new System.Timers.Timer(seconds * 1000);
+                timer.Elapsed += (sender, e) =>
                 {
-                    var scheduler = await StdSchedulerFactory.GetDefaultScheduler();
-                    await scheduler.DeleteJob(new JobKey(key));
-                    ActionList.Remove(key);
-                }
-            }
-            catch (Exception ex)
-            {
-                var logger = Util.Injection.GetService<ILogger>();
-                logger?.Error(ex);
-            }
-        }
-
-        public static async void RemoveAll(object owner)
-        {
-            try
-            {
-                if (OwnerKey.TryGetValue(owner, out List<string>? list))
-                {
-                    if (list != null)
+                    if (!LockData.ContainsKey(token) || !LockData[token])
                     {
-                        foreach (var item in list)
+                        try { action(); }
+                        catch (Exception ex)
                         {
-                            await Remove(item);
+                            Util.Injection.GetService<ILogger>()?.Error(ex);
                         }
                     }
+                };
+                timer.Enabled = true;
+                TimerList.Add(token, timer);
+            }
+        }
+
+        public static void Once(string token, double seconds, Action action)
+        {
+            try
+            {
+                lock (OnceList)
+                {
+                    DelayedExecution delayed;
+                    if (OnceList.ContainsKey(token))
+                    {
+                        delayed = OnceList[token];
+                    }
+                    else
+                    {
+                        delayed = new DelayedExecution();
+                        OnceList.Add(token, delayed);
+                    }
+                    delayed.Execute(seconds, action);
                 }
             }
             catch (Exception ex)
             {
-                var logger = Util.Injection.GetService<ILogger>();
-                logger?.Error(ex);
+                Util.Injection.GetService<ILogger>()?.Error(ex);
             }
         }
 
+        public static void Remove(string key)
+        {
+            try
+            {
+                lock (TimerList)
+                {
+                    if (TimerList.ContainsKey(key))
+                    {
+                        TimerList[key].Stop();
+                        TimerList[key].Dispose();
+                        TimerList.Remove(key);
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Util.Injection.GetService<ILogger>()?.Error(ex);
+            }
+        }
 
         /// <summary>
         /// 设置当前任务正在执行，锁定后下次任务则会跳过
@@ -170,6 +97,36 @@ namespace CodeCore.Impl
         {
             LockData.Remove(token);
         }
-    }
 
+        private class DelayedExecution
+        {
+            private CancellationTokenSource _cancellationTokenSource;
+
+            public void Execute(double seconds, Action action)
+            {
+                if (_cancellationTokenSource != null)
+                {
+                    _cancellationTokenSource.Cancel();
+                }
+
+                _cancellationTokenSource = new CancellationTokenSource();
+                var token = _cancellationTokenSource.Token;
+
+                Task.Delay((int)(seconds * 1000), token).ContinueWith(t =>
+                {
+                    if (!t.IsCanceled)
+                    {
+                        try
+                        {
+                            action();
+                        }
+                        catch (Exception ex)
+                        {
+                            Util.Injection.GetService<ILogger>()?.Error(ex);
+                        }
+                    }
+                }, token);
+            }
+        }
+    }
 }

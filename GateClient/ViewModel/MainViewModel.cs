@@ -165,7 +165,7 @@ namespace GateClient.ViewModel
             }
 
             ChangeVersionText();
-            Quartzer.CreateJob(this, nameof(ChangeVersionText), 10, ChangeVersionText);
+            TaskDispatch.CreateJob(nameof(ChangeVersionText), 10, ChangeVersionText);
 
             ChangePage1();
         }
@@ -174,7 +174,7 @@ namespace GateClient.ViewModel
         private GateDb GateDb { get; } = new GateDb();
 
         // 更新闸机信息，触发间隔五秒钟
-        private void GetGateInfo()
+        private async void GetGateInfo()
         {
             var api = appsettings.Node("api")!.Value<string>("getGateInfo")!;
             var args = new
@@ -182,59 +182,62 @@ namespace GateClient.ViewModel
                 code = GateCode,
                 password = GatePassword,
             };
+            await GetGateInfoToHttp(api, args);
 
-            Quartzer.CreateJob(this, nameof(GetGateInfo), 5, true, async () =>
+            TaskDispatch.CreateJob(nameof(GetGateInfo), 5, async () =>
             {
-                Quartzer.Lock(nameof(GetGateInfo));
-                try
-                {
-                    var response = await Util.UseHttpJson(api, args, false);
-                    if (!Util.Accredit)
-                    {
-                        Title = "授权失败";
-                        return;
-                    }
-                    if (response.RequestSuccess)
-                    {
-                        var data = response.GetData<JToken>()?.Value<JToken>("data")?.ToObject<GateDb>();
-
-                        GateDb.SetData(data);
-
-                        if (CurrPageCode == PageCode.NetworkError)
-                        {
-                            ChangePage1();
-                        }
-                        if (CurrPageCode == PageCode.Init)
-                        {
-                            InitPageEnd();
-                        }
-                        ChangeLeftTopText();
-                    }
-                    else if (CurrPageCode == PageCode.Init)
-                    {
-                        DispatcherHelper.CheckBeginInvokeOnUI(() =>
-                        {
-                            Title = "网络错误，正在重试";
-                            StartBg = Util.ToColor("#42CFC5");
-                            EndBg = Util.ToColor("#42CFC5");
-                            ThemeBg = Util.ToBrush("#ffffff");
-                            IconColor = Util.ToBrush("#EC6B32");
-                        });
-                    }
-                    else
-                    {
-                        ChangePage4();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex);
-                }
-                finally
-                {
-                    Quartzer.Unlock(nameof(GetGateInfo));
-                }
+                TaskDispatch.Lock(nameof(GetGateInfo));
+                await GetGateInfoToHttp(api, args);
+                TaskDispatch.Unlock(nameof(GetGateInfo));
             });
+        }
+
+        private async Task GetGateInfoToHttp(string api , object args)
+        {
+            try
+            {
+                var response = await Util.UseHttpJson(api, args, false);
+                if (!Util.Accredit)
+                {
+                    Title = "授权失败";
+                    return;
+                }
+                if (response.RequestSuccess)
+                {
+                    var data = response.GetData<JToken>()?.Value<JToken>("data")?.ToObject<GateDb>();
+
+                    GateDb.SetData(data);
+
+                    if (CurrPageCode == PageCode.NetworkError)
+                    {
+                        ChangePage1();
+                    }
+                    if (CurrPageCode == PageCode.Init)
+                    {
+                        InitPageEnd();
+                    }
+                    ChangeLeftTopText();
+                }
+                else if (CurrPageCode == PageCode.Init)
+                {
+                    DispatcherHelper.CheckBeginInvokeOnUI(() =>
+                    {
+                        Title = "网络错误，正在重试";
+                        StartBg = Util.ToColor("#42CFC5");
+                        EndBg = Util.ToColor("#42CFC5");
+                        ThemeBg = Util.ToBrush("#ffffff");
+                        IconColor = Util.ToBrush("#EC6B32");
+                    });
+                }
+                else
+                {
+                    ChangePage4();
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex);
+            }
         }
         #endregion
 
@@ -558,12 +561,11 @@ namespace GateClient.ViewModel
         }
 
 
-        private async void OpenGate(int number)
+        private void OpenGate(int number)
         {
             var isOk = gateUtil.SetIntimes(number);
-            await Quartzer.Remove("autoCloseGate");
             var timeout = isOk ? appsettings.Node("gate").Value<int>("timeout") : 5;
-            Quartzer.Once(this, "autoCloseGate", timeout, () =>
+            TaskDispatch.Once("autoCloseGate", timeout, () =>
             {
                 if (CurrPageCode == PageCode.Success)
                 {
@@ -669,7 +671,7 @@ namespace GateClient.ViewModel
         /// </summary>
         /// <param name="title"></param>
         /// <param name="subtitle"></param>
-        async void ChangePage3(string title, string? subtitle)
+        void ChangePage3(string title, string? subtitle)
         {
             Sound.PlayAudio(SoundType.检票失败);
             DispatcherHelper.CheckBeginInvokeOnUI(() =>
@@ -686,8 +688,7 @@ namespace GateClient.ViewModel
                 ThemeIcon = Geometry.Parse("M304.147 267.811L196.347 157.511L304.147 47.2108C316.447 37.3109 317.747 20.3109 307.047 9.11086C296.347 -2.08916 277.647 -3.08916 265.347 6.81085L157.147 117.411L48.9468 6.81085C36.6468 -3.08916 17.9468 -2.08916 7.24681 9.11086C-3.4532 20.3109 -2.1532 37.3109 10.1468 47.2108L117.947 157.511L10.1468 267.811C-2.1532 277.711 -3.4532 294.811 7.24681 305.911C17.9468 317.111 36.6468 318.111 48.9468 308.211L157.147 197.611L265.247 308.211C277.547 318.111 296.247 317.111 306.947 305.911C317.747 294.811 316.447 277.711 304.147 267.811Z");
             });
 
-            await Quartzer.Remove(nameof(ChangePage3));
-            Quartzer.Once(this, nameof(ChangePage3), 6, () =>
+            TaskDispatch.Once(nameof(ChangePage3), 6, () =>
             {
                 if (CurrPageCode == PageCode.CheckFail)
                 {

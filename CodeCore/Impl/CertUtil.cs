@@ -108,7 +108,7 @@ namespace CodeCore.Impl
                 return "初始化失败";
             }
 
-            Quartzer.CreateJob(this, "ReadCert", 1, () =>
+            TaskDispatch.CreateJob("ReadCert", 1, () =>
             {
                 var card = "";
                 // 读身份证
