@@ -113,6 +113,7 @@ namespace CodeCore
                 };
             }
             var httpId = Random.Shared.Next(1000, 9999).ToString();
+            string apiUrl = api + $"?rand={httpId}";
 
             var logger = Injection.GetService<ILogger>()!;
             var jsonSetting = new JsonSerializerSettings
@@ -120,12 +121,12 @@ namespace CodeCore
                 NullValueHandling = NullValueHandling.Ignore,
             };
             var jsonContent = JsonConvert.SerializeObject(args, Formatting.None, jsonSetting);
-            logger.IfInfo(writeLog, httpId, api, jsonContent);
+            logger.IfInfo(writeLog, httpId, apiUrl, jsonContent);
 
             var resultData = new HttpResponse();
             try
             {
-                var req = new HttpRequestMessage(HttpMethod.Post, api);
+                var req = new HttpRequestMessage(HttpMethod.Post, apiUrl);
                 req.Content = JsonContent.Create(JsonConvert.DeserializeObject<Dictionary<string, object>>(jsonContent));
                 var startTime = DateTime.Now;
                 var response = await HttpClient.SendAsync(req);
@@ -158,11 +159,11 @@ namespace CodeCore
 
                 var responseJson = resultData.JsonData?.Replace("\t", "")?.Replace("\n", "");
                 logger.IfInfo(writeLog, httpId, responseJson);
-                if (!writeLog && logUseTime.TotalSeconds > 2)
-                {
-                    logger.Info(httpId, api, jsonContent, responseJson);
-                }
-                logger.IfInfo(logUseTime.TotalSeconds > 2, httpId, $"耗时{logUseTime.TotalSeconds}s");
+                //if (!writeLog && logUseTime.TotalSeconds > 2)
+                //{
+                //    logger.Info(httpId, api, jsonContent, responseJson);
+                //}
+                logger.IfInfo(logUseTime.TotalSeconds > 2, httpId, $"耗时{logUseTime.TotalSeconds:0.00}s");
             }
             catch (Exception ex)
             {
