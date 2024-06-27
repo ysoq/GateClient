@@ -163,7 +163,7 @@ namespace CodeCore
                 //{
                 //    logger.Info(httpId, api, jsonContent, responseJson);
                 //}
-                logger.IfInfo(logUseTime.TotalSeconds > 2, httpId, $"耗时{logUseTime.TotalSeconds:0.00}s");
+                logger.IfInfo(writeLog && logUseTime.TotalSeconds > 2, httpId, $"耗时{logUseTime.TotalSeconds:0.00}s");
             }
             catch (Exception ex)
             {

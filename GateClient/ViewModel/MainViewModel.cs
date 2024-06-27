@@ -174,7 +174,7 @@ namespace GateClient.ViewModel
         private GateDb GateDb { get; } = new GateDb();
 
         // 更新闸机信息，触发间隔五秒钟
-        private async void GetGateInfo()
+        private void GetGateInfo()
         {
             var api = appsettings.Node("api")!.Value<string>("getGateInfo")!;
             var args = new
@@ -182,7 +182,10 @@ namespace GateClient.ViewModel
                 code = GateCode,
                 password = GatePassword,
             };
-            await GetGateInfoToHttp(api, args);
+            DispatcherHelper.CheckBeginInvokeOnUI(async () =>
+            {
+                await GetGateInfoToHttp(api, args);
+            });
 
             TaskDispatch.CreateJob(nameof(GetGateInfo), 5, async () =>
             {
@@ -245,16 +248,22 @@ namespace GateClient.ViewModel
 
 
         Queue<Action> openGateAgainCheck = new Queue<Action>();
-        private async void QrCheck(string content)
+        private void QrCheck(string content)
         {
             logger?.Info("qr check", content);
-            await CheckTicket(null, content);
+            DispatcherHelper.CheckBeginInvokeOnUI(async () =>
+            {
+                await CheckTicket(null, content);
+            });
         }
 
         async void CertCheck(CertInfo content)
         {
             logger?.Info("cert check", content.Cert);
-            await CheckTicket(content, null);
+            DispatcherHelper.CheckBeginInvokeOnUI(async () =>
+            {
+                await CheckTicket(content, null);
+            });
         }
 
 
