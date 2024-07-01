@@ -159,11 +159,11 @@ namespace CodeCore
 
                 var responseJson = resultData.JsonData?.Replace("\t", "")?.Replace("\n", "");
                 logger.IfInfo(writeLog, httpId, responseJson);
-                //if (!writeLog && logUseTime.TotalSeconds > 2)
-                //{
-                //    logger.Info(httpId, api, jsonContent, responseJson);
-                //}
-                logger.IfInfo(writeLog && logUseTime.TotalSeconds > 2, httpId, $"耗时{logUseTime.TotalSeconds:0.00}s");
+                if (!writeLog && logUseTime.TotalSeconds > 2)
+                {
+                    logger.Info(httpId, api, jsonContent, responseJson);
+                }
+                logger.IfInfo(logUseTime.TotalSeconds > 2, httpId, $"耗时{logUseTime.TotalSeconds:0.00}s");
             }
             catch (Exception ex)
             {
