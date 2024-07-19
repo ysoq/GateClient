@@ -182,24 +182,24 @@ namespace GateClient.ViewModel
                 code = GateCode,
                 password = GatePassword,
             };
-            DispatcherHelper.CheckBeginInvokeOnUI(async () =>
+            DispatcherHelper.CheckBeginInvokeOnUI(() =>
             {
-                await GetGateInfoToHttp(api, args);
+                GetGateInfoToHttp(api, args);
             });
 
-            TaskDispatch.CreateJob(nameof(GetGateInfo), 5, async () =>
+            TaskDispatch.CreateJob(nameof(GetGateInfo), 5, () =>
             {
                 TaskDispatch.Lock(nameof(GetGateInfo));
-                await GetGateInfoToHttp(api, args);
+                GetGateInfoToHttp(api, args);
                 TaskDispatch.Unlock(nameof(GetGateInfo));
             });
         }
 
-        private async Task GetGateInfoToHttp(string api , object args)
+        private void GetGateInfoToHttp(string api, object args)
         {
             try
             {
-                var response = await Util.UseHttpJson(api, args, false);
+                var response = Util.UseHttpJson("getGateInfo", api, args, false);
                 if (!Util.Accredit)
                 {
                     Title = "授权失败";
@@ -386,7 +386,7 @@ namespace GateClient.ViewModel
                 }
                 TicketInfo? cacheTicket = null;
                 {
-                    var response = await Util.UseHttpJson(getFaceVerifyInfo, new
+                    var response = await Util.UseHttpJsonAsync("getFaceVerifyInfo", getFaceVerifyInfo, new
                     {
                         code = GateCode,
                         password = GatePassword,
@@ -434,7 +434,7 @@ namespace GateClient.ViewModel
                     Title = "请看摄像头";
                     Sound.PlayAudio(SoundType.请看摄像头);
 
-                    var response = await Util.UseHttpJson($"{ticketApi}/faceCheck/faceVerify", new
+                    var response = await Util.UseHttpJsonAsync("faceVerify", $"{ticketApi}/faceCheck/faceVerify", new
                     {
                         faceDeviceId,
                         faceBase64 = cacheTicket.picInfo
@@ -486,7 +486,7 @@ namespace GateClient.ViewModel
             var api = appsettings.Node("api")?.Value<string>("gateIn")!;
             Title = "检票中";
             IconRunning = true;
-            var response = await Util.UseHttpJson(api, args);
+            var response = await Util.UseHttpJsonAsync("gateIn", api, args);
             IconRunning = false;
             Title = "请检票";
 
@@ -547,27 +547,27 @@ namespace GateClient.ViewModel
             }
         }
 
-        private async void CheckChangeNotOpenGate(GateInDto args)
-        {
-            if (GateDb == null)
-            {
-                return;
-            }
-            if (args.ticketKind == "3")
-            {
-                args.spotId = GateDb.GetSpotId();
-            }
-            else
-            {
-                var current = GateDb.CurrentShipTask();
-                args.shipId = current?.shipId;
-                args.flightId = current?.flightId;
-                args.flightShipCode = current?.flightShipCode;
-            }
+        //private async void CheckChangeNotOpenGate(GateInDto args)
+        //{
+        //    if (GateDb == null)
+        //    {
+        //        return;
+        //    }
+        //    if (args.ticketKind == "3")
+        //    {
+        //        args.spotId = GateDb.GetSpotId();
+        //    }
+        //    else
+        //    {
+        //        var current = GateDb.CurrentShipTask();
+        //        args.shipId = current?.shipId;
+        //        args.flightId = current?.flightId;
+        //        args.flightShipCode = current?.flightShipCode;
+        //    }
 
-            var api = appsettings.Node("api")?.Value<string>("gateIn")!;
-            await Util.UseHttpJson(api, args);
-        }
+        //    var api = appsettings.Node("api")?.Value<string>("gateIn")!;
+        //    await Util.UseHttpJson(api, args);
+        //}
 
 
         private void OpenGate(int number)

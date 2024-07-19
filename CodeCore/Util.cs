@@ -3,10 +3,15 @@ using CodeCore.ProwayGate;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using RestSharp;
+using Serilog.Core;
 using System.Net;
 using System.Net.Http.Json;
 using System.Windows;
 using System.Windows.Media;
+using static System.Net.WebRequestMethods;
+using File = System.IO.File;
+using Logger = CodeCore.Impl.Logger;
 
 namespace CodeCore
 {
@@ -101,8 +106,10 @@ namespace CodeCore
             PageSizeInfo.Default = data;
         }
 
+        public static ILogger logger => Injection.GetService<ILogger>()!;
+
         static HttpClient HttpClient = null;
-        public static async Task<HttpResponse> UseHttpJson(string api, object args, bool writeLog = true)
+        public static async Task<HttpResponse> UseHttpJson1(string api, object args, bool writeLog = true)
         {
             if (!Accredit)
             {
@@ -115,7 +122,6 @@ namespace CodeCore
             var httpId = Random.Shared.Next(1000, 9999).ToString();
             string apiUrl = api + $"?rand={httpId}";
 
-            var logger = Injection.GetService<ILogger>()!;
             var jsonSetting = new JsonSerializerSettings
             {
                 NullValueHandling = NullValueHandling.Ignore,
@@ -173,6 +179,140 @@ namespace CodeCore
             }
 
             return resultData;
+        }
+
+        static RestClient RestRequest = new RestClient();
+        public static HttpResponse UseHttpJson(string logType, string api, object args, bool writeLog = true)
+        {
+            try
+            {
+                var httpId = Random.Shared.Next(1000, 9999).ToString();
+                string apiUrl = api + $"?rand={httpId}";
+
+                var jsonContent = JsonConvert.SerializeObject(args);
+
+                logger.IfInfo(writeLog, httpId, apiUrl, jsonContent);
+
+                var startTime = DateTime.Now;
+                var response = _useHttpJson(apiUrl, jsonContent);
+                var logUseTime = DateTime.Now - startTime;
+
+                logger.IfInfo(writeLog, httpId, response.JsonData ?? "", response.Error?.Message ?? "");
+
+                if (!writeLog && logUseTime.TotalSeconds > 2)
+                {
+                    logger.Info(httpId, api, jsonContent, response.JsonData ?? "");
+                }
+                logger.IfInfo(logUseTime.TotalSeconds > 2, httpId, $"{logType}耗时{logUseTime.TotalSeconds:0.00}s");
+
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex);
+                return new HttpResponse { RequestSuccess = false, Error = new Exception("网络请求错误") };
+            }
+        }
+
+        public static async Task<HttpResponse> _useHttpJsonAsync(string api, string jsonContent)
+        {
+            var request = new RestRequest(api, Method.Post);
+            request.AddHeader("Content-Type", "application/json");
+            request.AddHeader("Accept", "*/*");
+            request.AddJsonBody(jsonContent);
+
+            var response = await RestRequest.ExecuteAsync(request);
+            var resData = new HttpResponse();
+            if (response.IsSuccessStatusCode)
+            {
+                resData.RequestSuccess = true;
+                resData.JsonData = response.Content;
+            }
+            else
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    resData.JsonData = response.Content;
+                    var jsonData = resData.GetData<JObject>();
+                    var msg = jsonData?.Value<string>("msg") ?? "网络请求错误";
+                    resData.RequestSuccess = false;
+                    resData.Error = new Exception(msg);
+                }
+                else
+                {
+                    resData.RequestSuccess = false;
+                    resData.Error = new Exception("网络请求错误");
+                }
+            }
+            return resData;
+        }
+
+        public static async Task<HttpResponse> UseHttpJsonAsync(string logType, string api, object args, bool writeLog = true)
+        {
+            try
+            {
+
+                var httpId = Random.Shared.Next(1000, 9999).ToString();
+                string apiUrl = api + $"?rand={httpId}";
+
+                var jsonContent = JsonConvert.SerializeObject(args);
+
+                logger.IfInfo(writeLog, httpId, apiUrl, jsonContent);
+
+                var startTime = DateTime.Now;
+                var response = await _useHttpJsonAsync(apiUrl, jsonContent);
+                var logUseTime = DateTime.Now - startTime;
+
+                logger.IfInfo(writeLog, httpId, response.JsonData ?? "", response.Error?.Message ?? "");
+
+                if (!writeLog && logUseTime.TotalSeconds > 2)
+                {
+                    logger.Info(httpId, api, jsonContent, response.JsonData ?? "");
+                }
+                logger.IfInfo(logUseTime.TotalSeconds > 2, httpId, $"{logType}耗时{logUseTime.TotalSeconds:0.00}s");
+
+                return response;
+
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex);
+                return new HttpResponse { RequestSuccess = false, Error = new Exception("网络请求错误") };
+            }
+        }
+
+        public static HttpResponse _useHttpJson(string api, string jsonContent)
+        {
+            var request = new RestRequest(api, Method.Post);
+            request.AddHeader("Content-Type", "application/json");
+            request.AddHeader("Accept", "*/*");
+            request.AddJsonBody(jsonContent);
+
+            var response = RestRequest.Execute(request);
+            var resData = new HttpResponse();
+            if (response.IsSuccessStatusCode)
+            {
+                resData.RequestSuccess = true;
+                resData.JsonData = response.Content;
+            }
+            else
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    resData.JsonData = response.Content;
+                    var jsonData = resData.GetData<JObject>();
+                    var msg = jsonData?.Value<string>("msg") ?? "网络请求错误";
+                    resData.RequestSuccess = false;
+                    resData.Error = new Exception(msg);
+                }
+                else
+                {
+                    resData.RequestSuccess = false;
+                    resData.Error = new Exception("网络请求错误");
+                }
+            }
+            return resData;
         }
 
         public static IServiceProvider Injection { get; internal set; }
