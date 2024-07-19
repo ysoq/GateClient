@@ -182,15 +182,16 @@ namespace GateClient.ViewModel
                 code = GateCode,
                 password = GatePassword,
             };
-            DispatcherHelper.CheckBeginInvokeOnUI(() =>
-            {
-                GetGateInfoToHttp(api, args);
-            });
+
+            GetGateInfoToHttp(api, args);
 
             TaskDispatch.CreateJob(nameof(GetGateInfo), 5, () =>
             {
                 TaskDispatch.Lock(nameof(GetGateInfo));
-                GetGateInfoToHttp(api, args);
+                DispatcherHelper.CheckBeginInvokeOnUI(() =>
+                {
+                    GetGateInfoToHttp(api, args);
+                });
                 TaskDispatch.Unlock(nameof(GetGateInfo));
             });
         }
