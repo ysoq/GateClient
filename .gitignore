@@ -3,3 +3,6 @@
 /CodeCore/bin
 /CodeCore/obj
 /.vs
+/GateClientt.Server/bin
+/GateClientt.Server/obj
+/packages/Newtonsoft.Json.13.0.3
