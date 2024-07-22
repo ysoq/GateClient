@@ -174,7 +174,7 @@ namespace GateClient.ViewModel
         private GateDb GateDb { get; } = new GateDb();
 
         // 更新闸机信息，触发间隔五秒钟
-        private void GetGateInfo()
+        private async void GetGateInfo()
         {
             var api = appsettings.Node("api")!.Value<string>("getGateInfo")!;
             var args = new
@@ -183,24 +183,19 @@ namespace GateClient.ViewModel
                 password = GatePassword,
             };
 
-            GetGateInfoToHttp(api, args);
-
-            TaskDispatch.CreateJob(nameof(GetGateInfo), 5, () =>
+            do
             {
-                TaskDispatch.Lock(nameof(GetGateInfo));
-                DispatcherHelper.CheckBeginInvokeOnUI(() =>
-                {
-                    GetGateInfoToHttp(api, args);
-                });
-                TaskDispatch.Unlock(nameof(GetGateInfo));
-            });
+                await GetGateInfoToHttp(api, args);
+                await Task.Delay(5000);
+            } while (true);
+
         }
 
-        private void GetGateInfoToHttp(string api, object args)
+        private async Task GetGateInfoToHttp(string api, object args)
         {
             try
             {
-                var response = Util.UseHttpJson("getGateInfo", api, args, false);
+                var response = await Util.UseHttpJsonAsync("getGateInfo", api, args, false);
                 if (!Util.Accredit)
                 {
                     Title = "授权失败";
