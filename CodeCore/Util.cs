@@ -1,12 +1,17 @@
 ﻿using CodeCore.Impl;
 using CodeCore.ProwayGate;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Xaml.Behaviors.Layout;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Serilog.Core;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Windows;
 using System.Windows.Media;
+using Logger = CodeCore.Impl.Logger;
 
 namespace CodeCore
 {
@@ -41,8 +46,6 @@ namespace CodeCore
                 ClientCertificateOptions = ClientCertificateOption.Manual,
                 ServerCertificateCustomValidationCallback = (a, b, c, d) => true
             };
-            HttpClient = new HttpClient(handler);
-            HttpClient.DefaultRequestHeaders.Connection.Add("keep-alive");
 
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             var jsonContent = File.ReadAllText("appsettings.json");
@@ -102,78 +105,100 @@ namespace CodeCore
             PageSizeInfo.Default = data;
         }
 
-        static HttpClient HttpClient = null;
-        public static async Task<HttpResponse> UseHttpJsonAsync(string httpType, string api, object args, bool writeLog = true)
+        public static ILogger logger => Injection.GetService<ILogger>()!;
+
+        public static async Task<HttpResponse> UseHttpJsonAsync(string logType, string api, object args, bool writeLog = true)
         {
-            if (!Accredit)
-            {
-                return new HttpResponse()
-                {
-                    RequestSuccess = false,
-                    Error = new Exception("授权失败"),
-                };
-            }
-            var httpId = Random.Shared.Next(1000, 9999).ToString();
-            string apiUrl = api + $"?rand={httpId}";
-
-            var logger = Injection.GetService<ILogger>()!;
-            var jsonSetting = new JsonSerializerSettings
-            {
-                NullValueHandling = NullValueHandling.Ignore,
-            };
-            var jsonContent = JsonConvert.SerializeObject(args, Formatting.None, jsonSetting);
-            logger.IfInfo(writeLog, httpId, apiUrl, jsonContent);
-
-            var resultData = new HttpResponse();
             try
             {
-                var req = new HttpRequestMessage(HttpMethod.Post, apiUrl);
-                req.Content = JsonContent.Create(JsonConvert.DeserializeObject<Dictionary<string, object>>(jsonContent));
+                var httpId = Random.Shared.Next(1000, 9999).ToString();
+                string apiUrl = api + $"?rand={httpId}";
+                var jsonContent = JsonConvert.SerializeObject(args);
+
+                logger.IfInfo(writeLog, httpId, apiUrl, jsonContent);
+
                 var startTime = DateTime.Now;
-                var response = await HttpClient.SendAsync(req);
+                var response = await _useHttpJson(apiUrl, jsonContent);
                 var logUseTime = DateTime.Now - startTime;
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    logger.Error(httpId, "网络请求错误，错误代码：", response.StatusCode.ToString());
+                logger.IfInfo(writeLog, httpId, response.JsonData ?? "");
 
-                    if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
-                    {
-                        resultData.JsonData = await response.Content.ReadAsStringAsync();
-                        var jsonData = resultData.GetData<JObject>();
-                        var msg = jsonData?.Value<string>("msg") ?? "网络请求错误";
-                        resultData.RequestSuccess = false;
-                        resultData.Error = new Exception(msg);
-                        logger.Error(httpId, resultData.JsonData);
-                    }
-                    else
-                    {
-                        resultData.RequestSuccess = false;
-                        resultData.Error = new Exception("网络请求错误，日志代码：" + httpId);
-                    }
-
-                    return resultData;
-                }
-
-                resultData.RequestSuccess = true;
-                resultData.JsonData = await response.Content.ReadAsStringAsync();
-
-                var responseJson = resultData.JsonData?.Replace("\t", "")?.Replace("\n", "");
-                logger.IfInfo(writeLog, httpId, responseJson);
                 if (!writeLog && logUseTime.TotalSeconds > 2)
                 {
-                    logger.Info(httpId, api, jsonContent, responseJson);
+                    logger.Info(httpId, api, jsonContent, response.JsonData ?? "");
                 }
-                logger.IfInfo(logUseTime.TotalSeconds > 2, httpId, $"{httpType}耗时{logUseTime.TotalSeconds:0.00}s");
+                logger.IfInfo(logUseTime.TotalSeconds > 2, httpId, $"{logType}耗时{logUseTime.TotalSeconds:0.00}s");
+                return response;
+
             }
             catch (Exception ex)
             {
-                resultData.RequestSuccess = false;
-                resultData.Error = new Exception("网络请求错误，日志代码：" + httpId);
-                logger.Error(ex, httpId);
+                logger.Error(ex);
+                return new HttpResponse { RequestSuccess = false, Error = new Exception("网络请求错误") };
             }
+        }
 
-            return resultData;
+        public static Task<HttpResponse> _useHttpJson(string api, string jsonContent)
+        {
+            return Task.Run(() =>
+            {
+                var jsonData = JsonConvert.SerializeObject(jsonContent);
+
+                string command = $"curl -X POST -H \"Content-Type: application/json\" -d {jsonData} {api}";
+                return ExecuteCommand("cmd.exe", command);
+            });
+        }
+
+        public static HttpResponse ExecuteCommand(string fileName, string command)
+        {
+            try
+            {
+                StringBuilder successSb = new StringBuilder();
+                StringBuilder errorSb = new StringBuilder();
+
+                //创建一个进程
+                Process process = new Process();
+                process.StartInfo.FileName = fileName;
+                process.StartInfo.Arguments = "/c" + command;
+                process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
+
+                // 必须禁用操作系统外壳程序
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.CreateNoWindow = true;
+                process.StartInfo.RedirectStandardInput = true;
+                process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.RedirectStandardError = true;
+
+                //启动进程
+                process.Start();
+
+                //等待退出
+                process.WaitForExit();
+
+                var standardOutput = process.StandardOutput;
+                var standardError = process.StandardError;
+
+                var output = standardOutput.ReadToEnd();
+                var error = standardError.ReadToEnd();
+
+
+                //关闭进程
+                process.Close();
+                return new HttpResponse()
+                {
+                    JsonData = output,
+                    Error = new Exception(error),
+                    RequestSuccess = true
+                };
+            }
+            catch (Exception ex)
+            {
+                return new HttpResponse()
+                {
+                    Error = ex,
+                    RequestSuccess = false,
+                };
+            }
         }
 
         public static IServiceProvider Injection { get; internal set; }
