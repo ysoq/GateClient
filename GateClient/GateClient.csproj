@@ -5,8 +5,8 @@
 		<TargetFramework>net6.0-windows</TargetFramework>
 		<Nullable>enable</Nullable>
 		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-		<AssemblyVersion>1.21</AssemblyVersion>
-		<FileVersion>1.21</FileVersion>
+		<AssemblyVersion>1.23</AssemblyVersion>
+		<FileVersion>1.23</FileVersion>
 		<UseWPF>true</UseWPF>
 		<ApplicationIcon>favicon.ico</ApplicationIcon>
 	</PropertyGroup>

@@ -7,6 +7,7 @@ namespace CodeCore
         public bool RequestSuccess { get; set; }
         public string? JsonData { get; set; }
         public Exception? Error { get; set; }
+        public string? ResponseError { get; set; }
 
         public T? GetData<T>()
         {

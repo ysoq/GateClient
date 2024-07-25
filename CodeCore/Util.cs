@@ -121,7 +121,14 @@ namespace CodeCore
                 var response = await _useHttpJson(apiUrl, jsonContent);
                 var logUseTime = DateTime.Now - startTime;
 
-                logger.IfInfo(writeLog, httpId, response.JsonData ?? "");
+                if (!string.IsNullOrEmpty(response.JsonData))
+                {
+                    logger.IfInfo(writeLog, httpId, response.JsonData);
+                }
+                else
+                {
+                    logger.IfInfo(writeLog, httpId, response.ResponseError!);
+                }
 
                 if (!writeLog && logUseTime.TotalSeconds > 2)
                 {
@@ -140,13 +147,31 @@ namespace CodeCore
 
         public static Task<HttpResponse> _useHttpJson(string api, string jsonContent)
         {
-            return Task.Run(() =>
+            TaskCompletionSource<HttpResponse> completionTask = new TaskCompletionSource<HttpResponse>();
+            CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+            Task.Run(() =>
             {
                 var jsonData = JsonConvert.SerializeObject(jsonContent);
 
-                string command = $"curl -X POST -H \"Content-Type: application/json\" -d {jsonData} {api}";
-                return ExecuteCommand("cmd.exe", command);
+                string command = $"curl -m 10 -X POST -H \"Content-Type: application/json\" -d {jsonData} {api}";
+                var res = ExecuteCommand("cmd.exe", command);
+                cancellationTokenSource.Cancel();
+                completionTask.SetResult(res);
             });
+            Task.Delay(11000, cancellationTokenSource.Token).ContinueWith((s) =>
+            {
+                if (!cancellationTokenSource.IsCancellationRequested)
+                {
+                    completionTask.SetResult(new HttpResponse()
+                    {
+                        Error = new Exception("网络请求错误"),
+                        RequestSuccess = false
+                    });
+                }
+            });
+
+            return completionTask.Task;
+
         }
 
         public static HttpResponse ExecuteCommand(string fileName, string command)
@@ -187,7 +212,8 @@ namespace CodeCore
                 return new HttpResponse()
                 {
                     JsonData = output,
-                    Error = new Exception(error),
+                    Error = new Exception("网络错误"),
+                    ResponseError = error,
                     RequestSuccess = true
                 };
             }
