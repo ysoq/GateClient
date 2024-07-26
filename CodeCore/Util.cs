@@ -1,10 +1,8 @@
 ﻿using CodeCore.Impl;
 using CodeCore.ProwayGate;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Xaml.Behaviors.Layout;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Serilog.Core;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
@@ -44,8 +42,10 @@ namespace CodeCore
                 AllowAutoRedirect = true,
                 UseCookies = true,
                 ClientCertificateOptions = ClientCertificateOption.Manual,
-                ServerCertificateCustomValidationCallback = (a, b, c, d) => true
+                ServerCertificateCustomValidationCallback = (a, b, c, d) => true,
+                Proxy = null,
             };
+            HttpClient = new HttpClient(handler);
 
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             var jsonContent = File.ReadAllText("appsettings.json");
@@ -118,7 +118,7 @@ namespace CodeCore
                 logger.IfInfo(writeLog, httpId, apiUrl, jsonContent);
 
                 var startTime = DateTime.Now;
-                var response = await _useHttpJson(apiUrl, jsonContent);
+                var response = await _useHttpJsonByCurl(apiUrl, jsonContent);
                 var logUseTime = DateTime.Now - startTime;
 
                 if (!string.IsNullOrEmpty(response.JsonData))
@@ -145,7 +145,52 @@ namespace CodeCore
             }
         }
 
-        public static Task<HttpResponse> _useHttpJson(string api, string jsonContent)
+
+        static HttpClient HttpClient = null;
+        public static async Task<HttpResponse> _useHttpJsonByHttpClient(string api, string jsonContent)
+        {
+
+            var resultData = new HttpResponse();
+            try
+            {
+                var req = new HttpRequestMessage(HttpMethod.Post, api);
+                req.Content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                var response = await HttpClient.SendAsync(req);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    {
+                        resultData.JsonData = await response.Content.ReadAsStringAsync();
+                        var jsonData = resultData.GetData<JObject>();
+                        var msg = jsonData?.Value<string>("msg") ?? "网络请求错误";
+                        resultData.RequestSuccess = false;
+                        resultData.Error = new Exception(msg);
+                    }
+                    else
+                    {
+                        resultData.RequestSuccess = false;
+                        resultData.Error = new Exception("网络请求错误");
+                    }
+
+                    return resultData;
+                }
+
+                resultData.RequestSuccess = true;
+                resultData.JsonData = await response.Content.ReadAsStringAsync();
+                resultData.JsonData = resultData.JsonData?.Replace("\t", "")?.Replace("\n", "");
+
+            }
+            catch (Exception ex)
+            {
+                resultData.RequestSuccess = false;
+                resultData.Error = new Exception("网络请求错误");
+            }
+
+            return resultData;
+        }
+
+        private static Task<HttpResponse> _useHttpJsonByCurl(string api, string jsonContent)
         {
             TaskCompletionSource<HttpResponse> completionTask = new TaskCompletionSource<HttpResponse>();
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
