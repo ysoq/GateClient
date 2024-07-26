@@ -19,6 +19,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Path = System.IO.Path;
 
 namespace GateClient
 {
@@ -31,8 +32,6 @@ namespace GateClient
         {
             InitializeComponent();
             this.Loaded += WebControl_Loaded;
-
-            WeakReferenceMessenger.Default.Register<HttpMessage>(this, HttpMessageReceived);
         }
         Dictionary<string, TaskCompletionSource<string>> HttpCallback = new Dictionary<string, TaskCompletionSource<string>>();
         private void HttpMessageReceived(object recipient, HttpMessage message)
@@ -45,7 +44,15 @@ namespace GateClient
 
         private async void WebControl_Loaded(object sender, RoutedEventArgs e)
         {
-            await webView.EnsureCoreWebView2Async();
+            if (Directory.Exists("WebView2"))
+            {
+                var s = await CoreWebView2Environment.CreateAsync(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "WebView2"));
+                await webView.EnsureCoreWebView2Async(s);
+            }
+            else
+            {
+                await webView.EnsureCoreWebView2Async();
+            }
             this.webView.WebMessageReceived += webView_WebMessageReceived;
 
             webView.CoreWebView2.AddWebResourceRequestedFilter("http://www.example.com/empty.html", CoreWebView2WebResourceContext.All);
@@ -90,12 +97,7 @@ namespace GateClient
 
             webView.Source = new Uri("http://www.example.com/empty.html");
 
-            var json = JsonConvert.SerializeObject(new
-            {
-                code = "SZG-SCD03",
-                password = "SZG-SCD03"
-            });
-
+            WeakReferenceMessenger.Default.Register<HttpMessage>(this, HttpMessageReceived);
         }
 
         private void webView_WebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)

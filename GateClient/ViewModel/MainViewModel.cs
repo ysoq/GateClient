@@ -219,13 +219,16 @@ namespace GateClient.ViewModel
                 }
                 else if (CurrPageCode == PageCode.Init)
                 {
-                    DispatcherHelper.CheckBeginInvokeOnUI(() =>
+                    if (response.Error?.Message != "empty")
                     {
-                        StartBg = Util.ToColor("#42CFC5");
-                        EndBg = Util.ToColor("#42CFC5");
-                        ThemeBg = Util.ToBrush("#ffffff");
-                        IconColor = Util.ToBrush("#EC6B32");
-                    });
+                        DispatcherHelper.CheckBeginInvokeOnUI(() =>
+                        {
+                            StartBg = Util.ToColor("#42CFC5");
+                            EndBg = Util.ToColor("#42CFC5");
+                            ThemeBg = Util.ToBrush("#ffffff");
+                            IconColor = Util.ToBrush("#EC6B32");
+                        });
+                    }
                 }
                 else
                 {

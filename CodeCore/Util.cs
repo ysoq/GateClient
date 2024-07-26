@@ -148,13 +148,24 @@ namespace CodeCore
 
         private static async Task<HttpResponse> _useHttpJsonByWebview(string httpId, string api, string jsonContent)
         {
-            var response = await WeakReferenceMessenger.Default.Send(new HttpMessage(httpId, api, jsonContent));
-
-            return new HttpResponse()
+            try
             {
-                JsonData = response,
-                RequestSuccess = true
-            };
+                var response = await WeakReferenceMessenger.Default.Send(new HttpMessage(httpId, api, jsonContent));
+
+                return new HttpResponse()
+                {
+                    JsonData = response,
+                    RequestSuccess = true
+                };
+            }
+            catch (Exception)
+            {
+                return new HttpResponse()
+                {
+                    RequestSuccess = false,
+                    Error = new Exception("empty"),
+                };
+            }
         }
 
         static HttpClient HttpClient = null;
