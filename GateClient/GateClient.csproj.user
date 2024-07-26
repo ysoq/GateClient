@@ -12,12 +12,18 @@
     <Compile Update="PageControl.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="WebControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Page Update="MainWindow.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="PageControl.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="WebControl.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>

@@ -13,11 +13,6 @@
     Height="600"
     mc:Ignorable="d">
     <Grid MouseLeftButtonDown="Grid_MouseLeftButtonDown">
-        <!--<ScrollViewer>-->
-        <!--
-            Width="{Binding Source={x:Static codeCore:Appsettings.Default}, Path=AppWidth}"
-            Height="{Binding Source={x:Static codeCore:Appsettings.Default}, Path=AppHeight}"
-        -->
         <local:PageControl
             EndBg="{Binding EndBg}"
             ErrorMsg="{Binding ErrorMsg}"
@@ -29,7 +24,6 @@
             StatusName="{Binding Title}"
             ThemeBg="{Binding ThemeBg}"
             ThemeIcon="{Binding ThemeIcon}" />
-        <!--</ScrollViewer>-->
-
+        <local:WebControl />
     </Grid>
 </Window>

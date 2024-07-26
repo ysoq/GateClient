@@ -221,7 +221,6 @@ namespace GateClient.ViewModel
                 {
                     DispatcherHelper.CheckBeginInvokeOnUI(() =>
                     {
-                        Title = "网络错误，正在重试";
                         StartBg = Util.ToColor("#42CFC5");
                         EndBg = Util.ToColor("#42CFC5");
                         ThemeBg = Util.ToBrush("#ffffff");

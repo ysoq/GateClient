@@ -1,5 +1,6 @@
 ﻿using CodeCore.Impl;
 using CodeCore.ProwayGate;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -111,14 +112,14 @@ namespace CodeCore
         {
             try
             {
-                var httpId = Random.Shared.Next(1000, 9999).ToString();
+                var httpId = Random.Shared.Next(10000, 99999).ToString();
                 string apiUrl = api + $"?rand={httpId}";
                 var jsonContent = JsonConvert.SerializeObject(args);
 
                 logger.IfInfo(writeLog, httpId, apiUrl, jsonContent);
 
                 var startTime = DateTime.Now;
-                var response = await _useHttpJsonByCurl(apiUrl, jsonContent);
+                var response = await _useHttpJsonByWebview(httpId, apiUrl, jsonContent);
                 var logUseTime = DateTime.Now - startTime;
 
                 if (!string.IsNullOrEmpty(response.JsonData))
@@ -145,9 +146,19 @@ namespace CodeCore
             }
         }
 
+        private static async Task<HttpResponse> _useHttpJsonByWebview(string httpId, string api, string jsonContent)
+        {
+            var response = await WeakReferenceMessenger.Default.Send(new HttpMessage(httpId, api, jsonContent));
+
+            return new HttpResponse()
+            {
+                JsonData = response,
+                RequestSuccess = true
+            };
+        }
 
         static HttpClient HttpClient = null;
-        public static async Task<HttpResponse> _useHttpJsonByHttpClient(string api, string jsonContent)
+        private static async Task<HttpResponse> _useHttpJsonByHttpClient(string httpId, string api, string jsonContent)
         {
 
             var resultData = new HttpResponse();
@@ -190,7 +201,7 @@ namespace CodeCore
             return resultData;
         }
 
-        private static Task<HttpResponse> _useHttpJsonByCurl(string api, string jsonContent)
+        private static Task<HttpResponse> _useHttpJsonByCurl(string httpId, string api, string jsonContent)
         {
             TaskCompletionSource<HttpResponse> completionTask = new TaskCompletionSource<HttpResponse>();
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();

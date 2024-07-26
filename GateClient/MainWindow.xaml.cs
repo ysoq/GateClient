@@ -48,6 +48,7 @@ namespace GateClient
             this.Width = Appsettings.Default.AppWidth;
             this.Height = Appsettings.Default.AppHeight;
             this.logger = logger;
+
         }
 
         private void Grid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
