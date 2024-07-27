@@ -14,6 +14,9 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Threading;
 using System.Diagnostics;
+using System.IO;
+using System.Net;
+using System.Security.Policy;
 
 namespace GateClientt.Server
 {
@@ -26,6 +29,7 @@ namespace GateClientt.Server
             InitializeComponent();
             HttpClient = new HttpClient();
             HttpClient.DefaultRequestHeaders.Add("user-agent", "GateClientt.Server");
+            System.Net.ServicePointManager.DefaultConnectionLimit = 200;
             this.Load += Form1_Load;
         }
         double timeout = 0;
@@ -40,9 +44,10 @@ namespace GateClientt.Server
                     password = "SCD03",
                 });
                 var startTime = DateTime.Now;
-                var result = await TryUseHttpJson("http://cdapi2.qualitrip.cn/gate/ws/getGateInfo", jsonContent);
+                var result = UseHttpJson("http://cdapi2.qualitrip.cn/gate/ws/getGateInfo", jsonContent);
                 var logUseTime = DateTime.Now - startTime;
                 timeout = (logUseTime.TotalSeconds + timeout) / 2;
+                LogHelper.Log("耗时", logUseTime.TotalSeconds.ToString());
                 this.label1.Text = "平均耗时" + timeout.ToString();
                 maxTimeout = Math.Max(maxTimeout, logUseTime.TotalSeconds);
                 this.label2.Text = "最大耗时" + maxTimeout.ToString();
@@ -52,26 +57,69 @@ namespace GateClientt.Server
         }
 
 
-        public Task<HttpResponse> TryUseHttpJson(string api, string jsonContent)
-        {
-            var completionTask = new TaskCompletionSource<HttpResponse>();
-            Task.Run(async () =>
-            {
-                var response = await UseHttpJson(api, jsonContent);
-                completionTask.TrySetResult(response);
-            });
-            Task.Delay(1000).ContinueWith(async (s) =>
-            {
-                if (!completionTask.Task.IsCompleted)
-                {
-                    var response = await UseHttpJson(api, jsonContent);
-                    completionTask.TrySetResult(response);
-                }
-            });
+        //public Task<HttpResponse> TryUseHttpJson(string api, string jsonContent)
+        //{
+        //    var completionTask = new TaskCompletionSource<HttpResponse>();
+        //    Task.Run(async () =>
+        //    {
+        //        var response = await UseHttpJson(api, jsonContent);
+        //        completionTask.TrySetResult(response);
+        //    });
+        //    Task.Delay(1000).ContinueWith(async (s) =>
+        //    {
+        //        if (!completionTask.Task.IsCompleted)
+        //        {
+        //            var response = UseHttpJson(api, jsonContent);
+        //            completionTask.TrySetResult(response);
+        //        }
+        //    });
 
-            return completionTask.Task;
+        //    return completionTask.Task;
+        //}
+        public HttpResponse UseHttpJson(string api, string jsonContent)
+        {
+            var resultData = new HttpResponse();
+            try
+            {
+                byte[] dataArray = Encoding.UTF8.GetBytes(jsonContent);
+                //向服务端请求
+                HttpWebRequest myRequest = (HttpWebRequest)WebRequest.Create(api);
+                myRequest.Headers.Add("X-Requested-With:XMLHttpRequest");
+                myRequest.Method = "POST";
+                myRequest.ContentType = "application/json";
+                myRequest.ContentLength = dataArray.Length; 
+                myRequest.Timeout = 60000;
+                Stream newStream = myRequest.GetRequestStream();
+                newStream.Write(dataArray, 0, dataArray.Length);
+                newStream.Close();
+                using (HttpWebResponse myResponse = (HttpWebResponse)myRequest.GetResponse())
+                {
+                    using (var stream = myResponse.GetResponseStream())
+                    {
+                        using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+                        {
+                            string rtnStr = reader.ReadToEnd();
+                            if (rtnStr != null)
+                            {
+                                resultData.JsonData = rtnStr;
+                            }
+                        }
+                    }
+                }
+
+                resultData.RequestSuccess = true;
+                resultData.JsonData = resultData.JsonData?.Replace("\t", "")?.Replace("\n", "");
+
+            }
+            catch (Exception ex)
+            {
+                resultData.RequestSuccess = false;
+                resultData.Error = new Exception("网络请求错误");
+            }
+
+            return resultData;
         }
-        public async Task<HttpResponse> UseHttpJson(string api, string jsonContent)
+        public async Task<HttpResponse> UseHttpJson1(string api, string jsonContent)
         {
             var resultData = new HttpResponse();
             try
