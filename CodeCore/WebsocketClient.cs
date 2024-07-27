@@ -65,7 +65,7 @@ namespace CodeCore
 
         private async Task ReceiveMessages()
         {
-            var buffer = new byte[1024 * 10];
+            var buffer = new byte[1024 * 1024];
             while (_webSocket.State == WebSocketState.Open)
             {
                 WebSocketReceiveResult result;

@@ -122,15 +122,8 @@ namespace CodeCore
                 logger.IfInfo(writeLog, httpId, apiUrl, jsonContent);
 
                 var startTime = DateTime.Now;
-                HttpResponse response;
-                if (logType == "faceVerify")
-                {
-                    response = await _useHttpJsonByHttpClient(httpId, apiUrl, jsonContent);
-                }
-                else
-                {
-                    response = await _useHttpJsonByWebsocket(httpId, apiUrl, jsonContent);
-                }
+                HttpResponse response = await _useHttpJsonByWebsocket(httpId, apiUrl, jsonContent);
+
                 var logUseTime = DateTime.Now - startTime;
 
                 if (!string.IsNullOrEmpty(response.JsonData))

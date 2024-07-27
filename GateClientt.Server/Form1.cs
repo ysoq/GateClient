@@ -34,12 +34,13 @@ namespace GateClientt.Server
         {
             do
             {
-                var startTime = DateTime.Now;
-                var result = UseHttpJson("http://cdapi2.qualitrip.cn/gate/ws/getGateInfo", new
+                var jsonContent = JsonConvert.SerializeObject(new
                 {
                     code = "SCD03",
                     password = "SCD03",
                 });
+                var startTime = DateTime.Now;
+                var result = await TryUseHttpJson("http://cdapi2.qualitrip.cn/gate/ws/getGateInfo", jsonContent);
                 var logUseTime = DateTime.Now - startTime;
                 timeout = (logUseTime.TotalSeconds + timeout) / 2;
                 this.label1.Text = "平均耗时" + timeout.ToString();
@@ -51,65 +52,68 @@ namespace GateClientt.Server
         }
 
 
-        public HttpResponse UseHttpJson(string api, object args)
+        public Task<HttpResponse> TryUseHttpJson(string api, string jsonContent)
         {
-            var jsonData = JsonConvert.SerializeObject(JsonConvert.SerializeObject(args));
+            var completionTask = new TaskCompletionSource<HttpResponse>();
+            Task.Run(async () =>
+            {
+                var response = await UseHttpJson(api, jsonContent);
+                completionTask.TrySetResult(response);
+            });
+            Task.Delay(1000).ContinueWith(async (s) =>
+            {
+                if (!completionTask.Task.IsCompleted)
+                {
+                    var response = await UseHttpJson(api, jsonContent);
+                    completionTask.TrySetResult(response);
+                }
+            });
 
-            string command = $"curl -X POST -H \"Content-Type: application/json\" -d {jsonData} {api}";
-            return ExecuteCommand("cmd.exe", command);
+            return completionTask.Task;
         }
-
-        public HttpResponse ExecuteCommand(string fileName, string command)
+        public async Task<HttpResponse> UseHttpJson(string api, string jsonContent)
         {
+            var resultData = new HttpResponse();
             try
             {
-                StringBuilder successSb = new StringBuilder();
-                StringBuilder errorSb = new StringBuilder();
+                var req = new HttpRequestMessage(HttpMethod.Post, api);
+                req.Content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                var response = await HttpClient.SendAsync(req);
 
-                //创建一个进程
-                Process process = new Process();
-                process.StartInfo.FileName = fileName;
-                process.StartInfo.Arguments = "/c" + command;
-                process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
-
-                // 必须禁用操作系统外壳程序
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.CreateNoWindow = true;
-                process.StartInfo.RedirectStandardInput = true;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.RedirectStandardError = true;
-
-                //启动进程
-                process.Start();
-
-                //等待退出
-                process.WaitForExit();
-
-                var standardOutput = process.StandardOutput;
-                var standardError = process.StandardError;
-
-                var output = standardOutput.ReadToEnd();
-                var error = standardError.ReadToEnd();
-
-
-                //关闭进程
-                process.Close();
-                return new HttpResponse()
+                if (!response.IsSuccessStatusCode)
                 {
-                    JsonData = output,
-                    Error = new Exception(error),
-                    RequestSuccess = true
-                };
+                    if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    {
+                        resultData.JsonData = await response.Content.ReadAsStringAsync();
+                        var jsonData = resultData.GetData<JObject>();
+                        var msg = jsonData?.Value<string>("msg") ?? "网络请求错误";
+                        resultData.RequestSuccess = false;
+                        resultData.Error = new Exception(msg);
+                    }
+                    else
+                    {
+                        resultData.RequestSuccess = false;
+                        resultData.Error = new Exception("网络请求错误");
+                    }
+
+                    return resultData;
+                }
+
+                resultData.RequestSuccess = true;
+                resultData.JsonData = await response.Content.ReadAsStringAsync();
+                resultData.JsonData = resultData.JsonData?.Replace("\t", "")?.Replace("\n", "");
+
             }
             catch (Exception ex)
             {
-                return new HttpResponse()
-                {
-                    Error = ex,
-                    RequestSuccess = false,
-                };
+                resultData.RequestSuccess = false;
+                resultData.Error = new Exception("网络请求错误");
             }
+
+            return resultData;
         }
+
+
     }
 
     public class HttpResponse
