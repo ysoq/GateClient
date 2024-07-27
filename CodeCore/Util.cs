@@ -48,6 +48,9 @@ namespace CodeCore
             };
             HttpClient = new HttpClient(handler);
 
+            WebsocketClient websocket = new WebsocketClient();
+            websocket.ConnectAsync("ws://120.79.66.125:4050/websocket/bridge");
+
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             var jsonContent = File.ReadAllText("appsettings.json");
 
@@ -119,7 +122,15 @@ namespace CodeCore
                 logger.IfInfo(writeLog, httpId, apiUrl, jsonContent);
 
                 var startTime = DateTime.Now;
-                var response = await _useHttpJsonByWebview(httpId, apiUrl, jsonContent);
+                HttpResponse response;
+                if (logType == "faceVerify")
+                {
+                    response = await _useHttpJsonByHttpClient(httpId, apiUrl, jsonContent);
+                }
+                else
+                {
+                    response = await _useHttpJsonByWebsocket(httpId, apiUrl, jsonContent);
+                }
                 var logUseTime = DateTime.Now - startTime;
 
                 if (!string.IsNullOrEmpty(response.JsonData))
@@ -146,17 +157,24 @@ namespace CodeCore
             }
         }
 
-        private static async Task<HttpResponse> _useHttpJsonByWebview(string httpId, string api, string jsonContent)
+        private static async Task<HttpResponse> _useHttpJsonByWebsocket(string httpId, string api, string jsonContent)
         {
             try
             {
-                var response = await WeakReferenceMessenger.Default.Send(new HttpMessage(httpId, api, jsonContent));
-
-                return new HttpResponse()
+                var response = await WeakReferenceMessenger.Default.Send(new WebsocketMessage(httpId, api, jsonContent));
+                if (response == "error")
                 {
-                    JsonData = response,
-                    RequestSuccess = true
-                };
+                    logger?.Error("httpclient plan");
+                    return await _useHttpJsonByHttpClient(httpId, api, jsonContent);
+                }
+                else
+                {
+                    return new HttpResponse()
+                    {
+                        JsonData = response,
+                        RequestSuccess = true
+                    };
+                }
             }
             catch (Exception)
             {
@@ -169,7 +187,7 @@ namespace CodeCore
         }
 
         static HttpClient HttpClient = null;
-        private static async Task<HttpResponse> _useHttpJsonByHttpClient(string httpId, string api, string jsonContent)
+        public static async Task<HttpResponse> _useHttpJsonByHttpClient(string httpId, string api, string jsonContent)
         {
 
             var resultData = new HttpResponse();

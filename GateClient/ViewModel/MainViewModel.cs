@@ -182,7 +182,7 @@ namespace GateClient.ViewModel
                 code = GateCode,
                 password = GatePassword,
             };
-
+            Util._useHttpJsonByHttpClient("getGateInfo", api, JsonConvert.SerializeObject(args));
             do
             {
                 await GetGateInfoToHttp(api, args);

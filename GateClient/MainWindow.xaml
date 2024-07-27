@@ -24,6 +24,5 @@
             StatusName="{Binding Title}"
             ThemeBg="{Binding ThemeBg}"
             ThemeIcon="{Binding ThemeIcon}" />
-        <local:WebControl />
     </Grid>
 </Window>
