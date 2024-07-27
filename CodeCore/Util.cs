@@ -154,49 +154,45 @@ namespace CodeCore
 
         private static Task<HttpResponse> _useHttpJsonByWebRequest(string httpId, string api, string jsonContent)
         {
-            return Task.Run(() =>
+            var resultData = new HttpResponse();
+            try
             {
-
-                var resultData = new HttpResponse();
-                try
+                byte[] dataArray = Encoding.UTF8.GetBytes(jsonContent);
+                //向服务端请求
+                HttpWebRequest myRequest = (HttpWebRequest)WebRequest.Create(api);
+                myRequest.Headers.Add("X-Requested-With:XMLHttpRequest");
+                myRequest.Method = "POST";
+                myRequest.ContentType = "application/json";
+                myRequest.ContentLength = dataArray.Length;
+                myRequest.Timeout = 60000;
+                Stream newStream = myRequest.GetRequestStream();
+                newStream.Write(dataArray, 0, dataArray.Length);
+                newStream.Close();
+                using (HttpWebResponse myResponse = (HttpWebResponse)myRequest.GetResponse())
                 {
-                    byte[] dataArray = Encoding.UTF8.GetBytes(jsonContent);
-                    //向服务端请求
-                    HttpWebRequest myRequest = (HttpWebRequest)WebRequest.Create(api);
-                    myRequest.Headers.Add("X-Requested-With:XMLHttpRequest");
-                    myRequest.Method = "POST";
-                    myRequest.ContentType = "application/json";
-                    myRequest.ContentLength = dataArray.Length;
-                    myRequest.Timeout = 60000;
-                    Stream newStream = myRequest.GetRequestStream();
-                    newStream.Write(dataArray, 0, dataArray.Length);
-                    newStream.Close();
-                    using (HttpWebResponse myResponse = (HttpWebResponse)myRequest.GetResponse())
+                    using (var stream = myResponse.GetResponseStream())
                     {
-                        using (var stream = myResponse.GetResponseStream())
+                        using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
                         {
-                            using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+                            string rtnStr = reader.ReadToEnd();
+                            if (rtnStr != null)
                             {
-                                string rtnStr = reader.ReadToEnd();
-                                if (rtnStr != null)
-                                {
-                                    resultData.JsonData = rtnStr;
-                                }
+                                resultData.JsonData = rtnStr;
                             }
                         }
                     }
-
-                    resultData.RequestSuccess = true;
-                    resultData.JsonData = resultData.JsonData?.Replace("\t", "")?.Replace("\n", "");
-                }
-                catch (Exception ex)
-                {
-                    resultData.RequestSuccess = false;
-                    resultData.Error = new Exception("网络请求错误");
                 }
 
-                return resultData;
-            });
+                resultData.RequestSuccess = true;
+                resultData.JsonData = resultData.JsonData?.Replace("\t", "")?.Replace("\n", "");
+            }
+            catch (Exception ex)
+            {
+                resultData.RequestSuccess = false;
+                resultData.Error = new Exception("网络请求错误");
+            }
+
+            return Task.FromResult(resultData);
         }
 
         private static async Task<HttpResponse> _useHttpJsonByWebsocket(string httpId, string api, string jsonContent)
