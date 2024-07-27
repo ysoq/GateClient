@@ -5,8 +5,8 @@
 		<TargetFramework>net6.0-windows</TargetFramework>
 		<Nullable>enable</Nullable>
 		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-		<AssemblyVersion>1.24</AssemblyVersion>
-		<FileVersion>1.24</FileVersion>
+		<AssemblyVersion>1.25</AssemblyVersion>
+		<FileVersion>1.25</FileVersion>
 		<UseWPF>true</UseWPF>
 		<ApplicationIcon>favicon.ico</ApplicationIcon>
 	</PropertyGroup>
@@ -98,7 +98,7 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
 		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2592.51" />
 		<PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.39" />
-		<PackageReference Include="WebView2.Runtime.X64" Version="127.0.2651.74" />
+		<PackageReference Include="WebView2.Runtime.X86" Version="127.0.2651.74" />
 	</ItemGroup>
 
 	<ItemGroup>
